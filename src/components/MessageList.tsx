@@ -190,6 +190,17 @@ function MessageItem({
             {spinnerFrames[animFrame % spinnerFrames.length]}
           </span>
         )}
+        {(msg.items.length > 0 || msg.tool_call_count > 0 || msg.thinking_count > 0) && (
+          <button
+            className="message__detail-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDoubleClick(index);
+            }}
+          >
+            Detail {"\u2192"}
+          </button>
+        )}
       </div>
 
       <div className={`message__content${!isExpanded ? " message__content--collapsed" : ""}`}>

@@ -342,7 +342,6 @@ export function App() {
             onSelect={handleSelectSession}
             onSearchChange={picker.setSearchQuery}
             onSelectIndex={setPickerSelectedIndex}
-            onBack={session.sessionPath ? backToList : undefined}
             animFrame={animFrame}
           />
         );

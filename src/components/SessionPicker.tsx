@@ -18,7 +18,6 @@ interface SessionPickerProps {
   onSelect: (session: SessionInfo) => void;
   onSearchChange: (query: string) => void;
   onSelectIndex?: (index: number) => void;
-  onBack?: () => void;
   animFrame: number;
 }
 
@@ -30,7 +29,6 @@ export function SessionPicker({
   onSelect,
   onSearchChange,
   onSelectIndex,
-  onBack,
   animFrame,
 }: SessionPickerProps) {
   const listRef = useRef<HTMLDivElement>(null);
@@ -50,14 +48,7 @@ export function SessionPicker({
   return (
     <div className="picker">
       <div className="picker__header">
-        <div className="picker__title">
-          {onBack && (
-            <button className="picker__back-btn" onClick={onBack}>
-              &larr; Back to Messages
-            </button>
-          )}
-          Sessions
-        </div>
+        <div className="picker__title">Sessions</div>
         <input
           ref={searchRef}
           className="picker__search"

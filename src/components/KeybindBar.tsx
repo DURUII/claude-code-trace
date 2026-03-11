@@ -3,6 +3,9 @@ import type { ViewState } from "../types";
 interface KeybindBarProps {
   view: ViewState;
   hasTeams: boolean;
+  showHints?: boolean;
+  onToggle?: () => void;
+  actions?: Record<string, () => void>;
 }
 
 interface KeyHint {
@@ -73,17 +76,40 @@ function getKeys(view: ViewState, hasTeams: boolean): KeyHint[] {
   }
 }
 
-export function KeybindBar({ view, hasTeams }: KeybindBarProps) {
+export function KeybindBar({
+  view,
+  hasTeams,
+  showHints = true,
+  onToggle,
+  actions,
+}: KeybindBarProps) {
   const keys = getKeys(view, hasTeams);
 
   return (
     <div className="keybind-bar">
-      {keys.map((hint) => (
-        <span key={hint.key} className="keybind-bar__item">
-          <span className="keybind-bar__key">{hint.key}</span>
-          <span className="keybind-bar__label">{hint.label}</span>
-        </span>
-      ))}
+      {showHints &&
+        keys.map((hint) => {
+          const action = actions?.[hint.label];
+          return (
+            <span
+              key={hint.key}
+              className={`keybind-bar__item${action ? " keybind-bar__item--clickable" : ""}`}
+              onClick={action}
+            >
+              <span className="keybind-bar__key">{hint.key}</span>
+              <span className="keybind-bar__label">{hint.label}</span>
+            </span>
+          );
+        })}
+      {onToggle && (
+        <button
+          className="keybind-bar__toggle"
+          onClick={onToggle}
+          title={showHints ? "Hide keybinds" : "Show keybinds"}
+        >
+          ?
+        </button>
+      )}
     </div>
   );
 }

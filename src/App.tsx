@@ -10,12 +10,13 @@ import { TeamBoard } from "./components/TeamBoard";
 import { DebugViewer } from "./components/DebugViewer";
 import { InfoBar } from "./components/InfoBar";
 import { KeybindBar } from "./components/KeybindBar";
+import { ViewToolbar } from "./components/ViewToolbar";
 
 export function App() {
   const [view, setView] = useState<ViewState>("picker");
   const [selectedMessage, setSelectedMessage] = useState(0);
   const [expandedMessages, setExpandedMessages] = useState<Set<number>>(
-    new Set()
+    new Set(),
   );
   const [pickerSelectedIndex, setPickerSelectedIndex] = useState(0);
   const [showKeybinds, setShowKeybinds] = useState(true);
@@ -60,7 +61,7 @@ export function App() {
       setSelectedMessage(0);
       setExpandedMessages(new Set());
     },
-    [session.loadSession]
+    [session.loadSession],
   );
 
   // Toggle message expand
@@ -77,6 +78,53 @@ export function App() {
   const openDetail = useCallback((index: number) => {
     setSelectedMessage(index);
     setView("detail");
+  }, []);
+
+  // -- Extracted action callbacks for toolbar + keyboard --
+
+  const expandAll = useCallback(() => {
+    setExpandedMessages((prev) => {
+      const next = new Set(prev);
+      session.messages.forEach((msg, i) => {
+        if (msg.role === "claude") next.add(i);
+      });
+      return next;
+    });
+  }, [session.messages]);
+
+  const collapseAll = useCallback(() => {
+    setExpandedMessages(new Set());
+  }, []);
+
+  const jumpToTop = useCallback(() => {
+    setSelectedMessage(0);
+  }, []);
+
+  const jumpToBottom = useCallback(() => {
+    setSelectedMessage(Math.max(session.messages.length - 1, 0));
+  }, [session.messages.length]);
+
+  const openDebug = useCallback(() => {
+    if (session.sessionPath) {
+      session.loadDebugLog(session.sessionPath);
+      setView("debug");
+    }
+  }, [session.sessionPath, session.loadDebugLog]);
+
+  const openTeams = useCallback(() => {
+    if (session.teams.length > 0) setView("team");
+  }, [session.teams.length]);
+
+  const goToSessions = useCallback(() => {
+    setView("picker");
+  }, []);
+
+  const backToList = useCallback(() => {
+    if (session.sessionPath) setView("list");
+  }, [session.sessionPath]);
+
+  const toggleKeybinds = useCallback(() => {
+    setShowKeybinds((v) => !v);
   }, []);
 
   // Keyboard navigation
@@ -121,9 +169,7 @@ export function App() {
     switch (e.key) {
       case "j":
         e.preventDefault();
-        setSelectedMessage((i) =>
-          Math.min(i + 1, session.messages.length - 1)
-        );
+        setSelectedMessage((i) => Math.min(i + 1, session.messages.length - 1));
         break;
       case "k":
         e.preventDefault();
@@ -131,11 +177,11 @@ export function App() {
         break;
       case "G":
         e.preventDefault();
-        setSelectedMessage(Math.max(session.messages.length - 1, 0));
+        jumpToBottom();
         break;
       case "g":
         e.preventDefault();
-        setSelectedMessage(0);
+        jumpToTop();
         break;
       case "Tab":
         e.preventDefault();
@@ -149,41 +195,32 @@ export function App() {
         break;
       case "e":
         e.preventDefault();
-        setExpandedMessages((prev) => {
-          const next = new Set(prev);
-          session.messages.forEach((msg, i) => {
-            if (msg.role === "claude") next.add(i);
-          });
-          return next;
-        });
+        expandAll();
         break;
       case "c":
         e.preventDefault();
-        setExpandedMessages(new Set());
+        collapseAll();
         break;
       case "t":
         e.preventDefault();
-        if (session.teams.length > 0) setView("team");
+        openTeams();
         break;
       case "d":
         e.preventDefault();
-        if (session.sessionPath) {
-          session.loadDebugLog(session.sessionPath);
-          setView("debug");
-        }
+        openDebug();
         break;
       case "q":
       case "Escape":
         e.preventDefault();
-        setView("picker");
+        goToSessions();
         break;
       case "s":
         e.preventDefault();
-        setView("picker");
+        goToSessions();
         break;
       case "?":
         e.preventDefault();
-        setShowKeybinds((v) => !v);
+        toggleKeybinds();
         break;
     }
   }
@@ -197,7 +234,7 @@ export function App() {
         break;
       case "?":
         e.preventDefault();
-        setShowKeybinds((v) => !v);
+        toggleKeybinds();
         break;
     }
   }
@@ -207,7 +244,7 @@ export function App() {
       case "j":
         e.preventDefault();
         setPickerSelectedIndex((i) =>
-          Math.min(i + 1, picker.sessions.length - 1)
+          Math.min(i + 1, picker.sessions.length - 1),
         );
         break;
       case "k":
@@ -223,11 +260,11 @@ export function App() {
       case "q":
       case "Escape":
         e.preventDefault();
-        if (session.sessionPath) setView("list");
+        backToList();
         break;
       case "?":
         e.preventDefault();
-        setShowKeybinds((v) => !v);
+        toggleKeybinds();
         break;
     }
   }
@@ -241,7 +278,7 @@ export function App() {
         break;
       case "?":
         e.preventDefault();
-        setShowKeybinds((v) => !v);
+        toggleKeybinds();
         break;
     }
   }
@@ -255,9 +292,27 @@ export function App() {
         break;
       case "?":
         e.preventDefault();
-        setShowKeybinds((v) => !v);
+        toggleKeybinds();
         break;
     }
+  }
+
+  // Keybind bar click actions
+  const keybindActions: Record<string, () => void> = {};
+  if (view === "list") {
+    keybindActions["debug"] = openDebug;
+    keybindActions["sessions"] = goToSessions;
+    if (session.teams.length > 0) {
+      keybindActions["tasks"] = openTeams;
+    }
+  } else if (view === "picker") {
+    keybindActions["back"] = backToList;
+  } else if (view === "detail") {
+    keybindActions["back"] = () => setView("list");
+  } else if (view === "team") {
+    keybindActions["back"] = () => setView("list");
+  } else if (view === "debug") {
+    keybindActions["back"] = () => setView("list");
   }
 
   // Render the active view
@@ -272,6 +327,8 @@ export function App() {
             selectedIndex={pickerSelectedIndex}
             onSelect={handleSelectSession}
             onSearchChange={picker.setSearchQuery}
+            onSelectIndex={setPickerSelectedIndex}
+            onBack={session.sessionPath ? backToList : undefined}
             animFrame={animFrame}
           />
         );
@@ -332,14 +389,34 @@ export function App() {
         />
       )}
 
+      {/* View toolbar */}
+      <ViewToolbar
+        view={view}
+        hasTeams={session.teams.length > 0}
+        hasSession={!!session.sessionPath}
+        messageCount={session.messages.length}
+        onGoToSessions={goToSessions}
+        onExpandAll={expandAll}
+        onCollapseAll={collapseAll}
+        onJumpTop={jumpToTop}
+        onJumpBottom={jumpToBottom}
+        onOpenTeams={openTeams}
+        onOpenDebug={openDebug}
+        onBackToList={backToList}
+      />
+
       <div className="app-body">
         <div className="main-content">{renderView()}</div>
       </div>
 
       {/* Keybind bar */}
-      {showKeybinds && (
-        <KeybindBar view={view} hasTeams={session.teams.length > 0} />
-      )}
+      <KeybindBar
+        view={view}
+        hasTeams={session.teams.length > 0}
+        showHints={showKeybinds}
+        onToggle={toggleKeybinds}
+        actions={keybindActions}
+      />
     </div>
   );
 }

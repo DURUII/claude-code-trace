@@ -16,6 +16,8 @@ interface SessionPickerProps {
   selectedIndex: number;
   onSelect: (session: SessionInfo) => void;
   onSearchChange: (query: string) => void;
+  onSelectIndex?: (index: number) => void;
+  onBack?: () => void;
   animFrame: number;
 }
 
@@ -26,6 +28,8 @@ export function SessionPicker({
   selectedIndex,
   onSelect,
   onSearchChange,
+  onSelectIndex,
+  onBack,
   animFrame,
 }: SessionPickerProps) {
   const listRef = useRef<HTMLDivElement>(null);
@@ -45,7 +49,14 @@ export function SessionPicker({
   return (
     <div className="picker">
       <div className="picker__header">
-        <div className="picker__title">Sessions</div>
+        <div className="picker__title">
+          {onBack && (
+            <button className="picker__back-btn" onClick={onBack}>
+              &larr; Back to Messages
+            </button>
+          )}
+          Sessions
+        </div>
         <input
           ref={searchRef}
           className="picker__search"
@@ -86,16 +97,19 @@ export function SessionPicker({
                   key={session.path}
                   ref={isSelected ? selectedRef : undefined}
                   className={`picker__session${isSelected ? " picker__session--selected" : ""}`}
+                  onMouseEnter={() => onSelectIndex?.(idx)}
                   onClick={() => onSelect(session)}
                 >
                   <div className="picker__session-top">
                     <span className="picker__session-preview">
-                      {truncate(session.first_message || session.session_id, 80)}
+                      {truncate(
+                        session.first_message || session.session_id,
+                        80,
+                      )}
                     </span>
                     {session.is_ongoing && (
                       <span className="picker__session-ongoing">
-                        {spinnerFrames[animFrame % spinnerFrames.length]}{" "}
-                        active
+                        {spinnerFrames[animFrame % spinnerFrames.length]} active
                       </span>
                     )}
                   </div>

@@ -1,8 +1,17 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import type { DisplayMessage, DisplayItem } from "../types";
-import { shortModel, formatTokens, formatDuration, formatExactTime } from "../lib/format";
+import {
+  shortModel,
+  formatTokens,
+  formatDuration,
+  formatExactTime,
+  formatJson,
+} from "../lib/format";
 import { getModelColor, getTeamColor, toolCategoryIcons } from "../lib/theme";
+import { useToggleSet } from "../hooks/useToggleSet";
+import { useScrollToSelected } from "../hooks/useScrollToSelected";
+import { BackButton } from "./BackButton";
 
 interface MessageDetailProps {
   message: DisplayMessage;
@@ -10,31 +19,13 @@ interface MessageDetailProps {
 }
 
 export function MessageDetail({ message: msg, onBack }: MessageDetailProps) {
-  const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set());
+  const { set: expandedItems, toggle: toggleItem } = useToggleSet();
   const [selectedItem, setSelectedItem] = useState(0);
-  const bodyRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useScrollToSelected(selectedItem);
 
   const model = msg.model ? shortModel(msg.model) : "";
   const modelColor = msg.model ? getModelColor(msg.model) : undefined;
   const time = formatExactTime(msg.timestamp);
-
-  const toggleItem = useCallback((index: number) => {
-    setExpandedItems((prev) => {
-      const next = new Set(prev);
-      if (next.has(index)) {
-        next.delete(index);
-      } else {
-        next.add(index);
-      }
-      return next;
-    });
-  }, []);
-
-  // Scroll selected item into view
-  const itemRefs = useRef<Map<number, HTMLDivElement>>(new Map());
-  useEffect(() => {
-    itemRefs.current.get(selectedItem)?.scrollIntoView({ block: "nearest" });
-  }, [selectedItem]);
 
   // Group items by type for section headers
   const hasItems = msg.items.length > 0;
@@ -42,9 +33,7 @@ export function MessageDetail({ message: msg, onBack }: MessageDetailProps) {
   return (
     <div className="message-detail">
       <div className="message-detail__header">
-        <button className="message-detail__back" onClick={onBack}>
-          {"\u2190"} Back
-        </button>
+        <BackButton onClick={onBack} />
         <span className="message-detail__title">
           {msg.role === "user" ? "User" : msg.role === "claude" ? "Claude" : "System"}
         </span>
@@ -69,7 +58,7 @@ export function MessageDetail({ message: msg, onBack }: MessageDetailProps) {
         </span>
       </div>
 
-      <div className="message-detail__body" ref={bodyRef}>
+      <div className="message-detail__body">
         <div className="message-detail__content">
           {/* Main content with markdown rendering */}
           {msg.content && (
@@ -85,10 +74,7 @@ export function MessageDetail({ message: msg, onBack }: MessageDetailProps) {
               {msg.items.map((item, idx) => (
                 <DetailItem
                   key={idx}
-                  ref={(el) => {
-                    if (el) itemRefs.current.set(idx, el);
-                    else itemRefs.current.delete(idx);
-                  }}
+                  ref={idx === selectedItem ? scrollRef : undefined}
                   item={item}
                   index={idx}
                   isSelected={idx === selectedItem}
@@ -294,13 +280,5 @@ function getItemSummary(item: DisplayItem): string {
       return item.text ? item.text.slice(0, 80) + (item.text.length > 80 ? "\u2026" : "") : "";
     default:
       return "";
-  }
-}
-
-function formatJson(input: string): string {
-  try {
-    return JSON.stringify(JSON.parse(input), null, 2);
-  } catch {
-    return input;
   }
 }

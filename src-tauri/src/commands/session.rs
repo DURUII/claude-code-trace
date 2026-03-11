@@ -2,9 +2,9 @@ use tauri::{AppHandle, State};
 
 use crate::convert::*;
 use crate::parser::chunk::build_chunks;
-use crate::parser::ongoing::{is_ongoing, ONGOING_STALENESS_THRESHOLD};
+use crate::parser::ongoing::{apply_staleness, is_ongoing, is_subagent_ongoing};
 use crate::parser::session::{extract_session_meta, read_session_incremental, SessionMeta};
-use crate::parser::subagent::{discover_subagents, discover_team_sessions, link_subagents, SubagentProcess};
+use crate::parser::subagent::discover_and_link_all;
 use crate::parser::team::reconstruct_teams;
 use crate::state::AppState;
 use crate::watcher::start_session_watcher;
@@ -24,30 +24,16 @@ pub async fn load_session(path: String) -> Result<LoadResult, String> {
     }
 
     // Discover and link subagent execution traces.
-    let subagents: Vec<SubagentProcess> = discover_subagents(&path).unwrap_or_default();
-    let team_procs = discover_team_sessions(&path, &chunks).unwrap_or_default();
-    let mut all_procs: Vec<SubagentProcess> = subagents;
-    all_procs.extend(team_procs);
-    let color_map = link_subagents(&mut all_procs, &chunks, &path);
+    let (all_procs, color_map) = discover_and_link_all(&path, &chunks);
 
     let mut ongoing = is_ongoing(&chunks);
     if !ongoing {
-        for proc in &all_procs {
-            if is_ongoing(&proc.chunks) {
-                ongoing = true;
-                break;
-            }
-        }
+        ongoing = all_procs.iter().any(|p| is_subagent_ongoing(p));
     }
     if ongoing {
         if let Ok(info) = std::fs::metadata(&path) {
             if let Ok(modified) = info.modified() {
-                let elapsed = std::time::SystemTime::now()
-                    .duration_since(modified)
-                    .unwrap_or_default();
-                if elapsed > ONGOING_STALENESS_THRESHOLD {
-                    ongoing = false;
-                }
+                ongoing = apply_staleness(true, modified);
             }
         }
     }
@@ -82,23 +68,14 @@ pub async fn watch_session(
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     // Stop existing watcher if any.
-    {
-        let mut guard = state.session_watcher.lock().map_err(|e| e.to_string())?;
-        if let Some(handle) = guard.take() {
-            handle.stop();
-        }
-    }
+    state.stop_session_watcher()?;
 
     // Read initial state.
     let (classified, new_offset, _) = read_session_incremental(&path, 0)?;
 
     // Start watcher.
     let handle = start_session_watcher(path, classified, new_offset, app);
-
-    {
-        let mut guard = state.session_watcher.lock().map_err(|e| e.to_string())?;
-        *guard = Some(handle);
-    }
+    state.set_session_watcher(handle)?;
 
     Ok(())
 }
@@ -127,9 +104,5 @@ pub async fn get_project_dirs() -> Result<Vec<String>, String> {
 /// Stop watching the current session.
 #[tauri::command]
 pub async fn unwatch_session(state: State<'_, AppState>) -> Result<(), String> {
-    let mut guard = state.session_watcher.lock().map_err(|e| e.to_string())?;
-    if let Some(handle) = guard.take() {
-        handle.stop();
-    }
-    Ok(())
+    state.stop_session_watcher()
 }

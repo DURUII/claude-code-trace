@@ -1,6 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type {
   DisplayMessage,
   TeamSnapshot,
@@ -9,6 +8,7 @@ import type {
   GitInfo,
   DebugEntry,
 } from "../types";
+import { useTauriEvent } from "./useTauriEvent";
 
 interface SessionState {
   messages: DisplayMessage[];
@@ -38,8 +38,6 @@ export function useSession() {
     debugEntries: [],
     loading: false,
   });
-
-  const unlistenRef = useRef<UnlistenFn | null>(null);
 
   const loadSession = useCallback(async (path: string) => {
     setState((prev) => ({ ...prev, loading: true }));
@@ -100,44 +98,23 @@ export function useSession() {
   }, []);
 
   // Listen for session-update events
-  useEffect(() => {
-    let cancelled = false;
-
-    const setupListener = async () => {
-      const unlisten = await listen<{
-        messages: DisplayMessage[];
-        teams: TeamSnapshot[];
-        ongoing: boolean;
-        permission_mode: string;
-      }>("session-update", (event) => {
-        if (cancelled) return;
-        setState((prev) => ({
-          ...prev,
-          messages: event.payload.messages,
-          teams: event.payload.teams,
-          ongoing: event.payload.ongoing,
-          meta: {
-            ...prev.meta,
-            permission_mode: event.payload.permission_mode || prev.meta.permission_mode,
-          },
-        }));
-      });
-
-      if (!cancelled) {
-        unlistenRef.current = unlisten;
-      } else {
-        unlisten();
-      }
-    };
-
-    setupListener();
-
-    return () => {
-      cancelled = true;
-      unlistenRef.current?.();
-      unlistenRef.current = null;
-    };
-  }, []);
+  useTauriEvent<{
+    messages: DisplayMessage[];
+    teams: TeamSnapshot[];
+    ongoing: boolean;
+    permission_mode: string;
+  }>("session-update", (payload) => {
+    setState((prev) => ({
+      ...prev,
+      messages: payload.messages,
+      teams: payload.teams,
+      ongoing: payload.ongoing,
+      meta: {
+        ...prev.meta,
+        permission_mode: payload.permission_mode || prev.meta.permission_mode,
+      },
+    }));
+  });
 
   // Cleanup on unmount
   useEffect(() => {

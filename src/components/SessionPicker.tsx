@@ -1,4 +1,5 @@
-import { useRef, useEffect } from "react";
+import { useRef } from "react";
+import { useScrollToSelected } from "../hooks/useScrollToSelected";
 import type { SessionInfo } from "../types";
 import {
   formatTokens,
@@ -32,13 +33,8 @@ export function SessionPicker({
   animFrame,
 }: SessionPickerProps) {
   const listRef = useRef<HTMLDivElement>(null);
-  const selectedRef = useRef<HTMLDivElement>(null);
+  const selectedRef = useScrollToSelected(selectedIndex);
   const searchRef = useRef<HTMLInputElement>(null);
-
-  // Scroll selected item into view
-  useEffect(() => {
-    selectedRef.current?.scrollIntoView({ block: "nearest" });
-  }, [selectedIndex]);
 
   const dateGroups = groupByDate(sessions);
 

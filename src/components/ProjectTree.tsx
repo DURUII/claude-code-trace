@@ -1,17 +1,11 @@
 import { useMemo } from "react";
 import type { SessionInfo } from "../types";
-import { shortPath } from "../lib/format";
+import { shortPath, projectKey } from "../lib/format";
 
 interface ProjectTreeProps {
   sessions: SessionInfo[];
   selectedProject: string | null;
   onSelectProject: (project: string | null) => void;
-}
-
-/** Extract the encoded project directory key from a session path. */
-function projectKey(path: string): string {
-  const match = path.match(/\/\.claude\/projects\/([^/]+)/);
-  return match ? match[1] : "unknown";
 }
 
 interface ProjectNode {

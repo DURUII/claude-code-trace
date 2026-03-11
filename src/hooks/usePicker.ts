@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type { SessionInfo } from "../types";
+import { useTauriEvent } from "./useTauriEvent";
 
 /** Sessions inactive for longer than this are no longer "ongoing". */
 const ONGOING_STALENESS_MS = 120_000;
@@ -25,14 +25,12 @@ interface PickerState {
   searchQuery: string;
 }
 
-export function usePicker() {
+export function usePicker(selectedProject: string | null = null) {
   const [state, setState] = useState<PickerState>({
     sessions: [],
     loading: false,
     searchQuery: "",
   });
-
-  const unlistenRef = useRef<UnlistenFn | null>(null);
 
   const discoverSessions = useCallback(async (projectDirs: string[]) => {
     setState((prev) => ({ ...prev, loading: true }));
@@ -59,33 +57,12 @@ export function usePicker() {
   }, []);
 
   // Listen for picker-refresh events
-  useEffect(() => {
-    let cancelled = false;
-
-    const setupListener = async () => {
-      const unlisten = await listen<{ sessions: SessionInfo[] }>("picker-refresh", (event) => {
-        if (cancelled) return;
-        setState((prev) => ({
-          ...prev,
-          sessions: clearStaleSessions(event.payload.sessions),
-        }));
-      });
-
-      if (!cancelled) {
-        unlistenRef.current = unlisten;
-      } else {
-        unlisten();
-      }
-    };
-
-    setupListener();
-
-    return () => {
-      cancelled = true;
-      unlistenRef.current?.();
-      unlistenRef.current = null;
-    };
-  }, []);
+  useTauriEvent<{ sessions: SessionInfo[] }>("picker-refresh", (payload) => {
+    setState((prev) => ({
+      ...prev,
+      sessions: clearStaleSessions(payload.sessions),
+    }));
+  });
 
   // Periodic staleness check — clear "ACTIVE" even if no file events fire
   useEffect(() => {
@@ -110,7 +87,7 @@ export function usePicker() {
   }, []);
 
   // Filter sessions by search query
-  const filteredSessions = state.searchQuery
+  let filteredSessions = state.searchQuery
     ? state.sessions.filter(
         (s) =>
           s.first_message.toLowerCase().includes(state.searchQuery.toLowerCase()) ||
@@ -118,6 +95,13 @@ export function usePicker() {
           s.model.toLowerCase().includes(state.searchQuery.toLowerCase()),
       )
     : state.sessions;
+
+  // Filter by selected project
+  if (selectedProject) {
+    filteredSessions = filteredSessions.filter((s) =>
+      s.path.includes(`/.claude/projects/${selectedProject}/`),
+    );
+  }
 
   return {
     sessions: filteredSessions,

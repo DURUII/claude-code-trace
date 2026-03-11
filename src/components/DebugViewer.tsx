@@ -1,5 +1,8 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import type { DebugEntry } from "../types";
+import { useToggleSet } from "../hooks/useToggleSet";
+import { useScrollToSelected } from "../hooks/useScrollToSelected";
+import { BackButton } from "./BackButton";
 
 type DebugLevel = "all" | "warn" | "error";
 
@@ -11,10 +14,10 @@ interface DebugViewerProps {
 export function DebugViewer({ entries, onBack }: DebugViewerProps) {
   const [levelFilter, setLevelFilter] = useState<DebugLevel>("all");
   const [searchText, setSearchText] = useState("");
-  const [expandedSet, setExpandedSet] = useState<Set<number>>(new Set());
+  const { set: expandedSet, toggle: toggleExpand, clear: clearExpanded } = useToggleSet();
   const [selectedIndex, setSelectedIndex] = useState(0);
   const bodyRef = useRef<HTMLDivElement>(null);
-  const selectedRef = useRef<HTMLDivElement>(null);
+  const selectedRef = useScrollToSelected(selectedIndex);
 
   // Filter entries
   const filtered = useMemo(() => {
@@ -46,29 +49,13 @@ export function DebugViewer({ entries, onBack }: DebugViewerProps) {
     }
   }, [filtered.length, selectedIndex]);
 
-  // Scroll into view
-  useEffect(() => {
-    selectedRef.current?.scrollIntoView({ block: "nearest" });
-  }, [selectedIndex]);
-
-  const toggleExpand = useCallback((index: number) => {
-    setExpandedSet((prev) => {
-      const next = new Set(prev);
-      if (next.has(index)) next.delete(index);
-      else next.add(index);
-      return next;
-    });
-  }, []);
-
   // cycleLevelFilter is available for keyboard shortcut integration
   // const cycleLevelFilter = useCallback(() => { ... }, []);
 
   return (
     <div className="debug-viewer">
       <div className="debug-viewer__header">
-        <button className="message-detail__back" onClick={onBack}>
-          {"\u2190"} Back
-        </button>
+        <BackButton onClick={onBack} />
         <span className="debug-viewer__title">Debug Log</span>
 
         <div className="debug-viewer__filter-group">
@@ -76,7 +63,7 @@ export function DebugViewer({ entries, onBack }: DebugViewerProps) {
             className={`debug-viewer__filter-btn${levelFilter === "all" ? " debug-viewer__filter-btn--active" : ""}`}
             onClick={() => {
               setLevelFilter("all");
-              setExpandedSet(new Set());
+              clearExpanded();
             }}
           >
             All
@@ -85,7 +72,7 @@ export function DebugViewer({ entries, onBack }: DebugViewerProps) {
             className={`debug-viewer__filter-btn${levelFilter === "warn" ? " debug-viewer__filter-btn--active" : ""}`}
             onClick={() => {
               setLevelFilter("warn");
-              setExpandedSet(new Set());
+              clearExpanded();
             }}
           >
             Warn+
@@ -94,7 +81,7 @@ export function DebugViewer({ entries, onBack }: DebugViewerProps) {
             className={`debug-viewer__filter-btn${levelFilter === "error" ? " debug-viewer__filter-btn--active" : ""}`}
             onClick={() => {
               setLevelFilter("error");
-              setExpandedSet(new Set());
+              clearExpanded();
             }}
           >
             Error
@@ -108,13 +95,13 @@ export function DebugViewer({ entries, onBack }: DebugViewerProps) {
           value={searchText}
           onChange={(e) => {
             setSearchText(e.target.value);
-            setExpandedSet(new Set());
+            clearExpanded();
             setSelectedIndex(0);
           }}
           onKeyDown={(e) => {
             if (e.key === "Escape") {
               setSearchText("");
-              setExpandedSet(new Set());
+              clearExpanded();
             }
           }}
         />
@@ -135,7 +122,7 @@ export function DebugViewer({ entries, onBack }: DebugViewerProps) {
           return (
             <div key={`${entry.line_num}-${idx}`}>
               <div
-                ref={isSelected ? selectedRef : undefined}
+                ref={isSelected ? selectedRef : null}
                 className={`debug-entry${isSelected ? " debug-entry--selected" : ""}`}
                 onClick={() => {
                   setSelectedIndex(idx);

@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use lazy_static::lazy_static;
 use regex::Regex;
 use serde_json::Value;
@@ -8,6 +9,24 @@ use super::chunk::*;
 
 /// Maximum time since last file modification before a session is dead.
 pub const ONGOING_STALENESS_THRESHOLD: Duration = Duration::from_secs(120);
+
+/// Returns true if the session is still ongoing (not stale).
+/// Returns false if `is_ongoing` is false, or if `mod_time` exceeds the staleness threshold.
+pub fn apply_staleness(is_ongoing: bool, mod_time: impl Into<DateTime<Utc>>) -> bool {
+    if !is_ongoing {
+        return false;
+    }
+    let elapsed = Utc::now()
+        .signed_duration_since(mod_time.into())
+        .to_std()
+        .unwrap_or(Duration::ZERO);
+    elapsed <= ONGOING_STALENESS_THRESHOLD
+}
+
+/// Check if a subagent is ongoing (chunk-based + file staleness).
+pub fn is_subagent_ongoing(proc: &super::subagent::SubagentProcess) -> bool {
+    is_ongoing(&proc.chunks) && apply_staleness(true, proc.file_mod_time)
+}
 
 lazy_static! {
     static ref APPROVE_PATTERN: Regex = Regex::new(r#""approve"\s*:\s*true"#).unwrap();

@@ -45,17 +45,6 @@ export function formatDuration(ms: number): string {
 }
 
 /**
- * Formats a session ID for compact display.
- * Standard UUIDs show only first 8 chars; renamed sessions show up to 20.
- */
-export function formatSessionName(id: string): string {
-  if (id.length === 36 && id[8] === "-" && id[13] === "-" && id[18] === "-" && id[23] === "-") {
-    return id.slice(0, 8);
-  }
-  return id.length > 20 ? id.slice(0, 20) + "\u2026" : id;
-}
-
-/**
  * Returns the project display name from a cwd path.
  * Extracts the last path segment.
  */
@@ -171,4 +160,23 @@ export function truncate(text: string, maxLen: number): string {
 export function firstLine(text: string): string {
   const idx = text.indexOf("\n");
   return idx === -1 ? text : text.slice(0, idx);
+}
+
+/**
+ * Pretty-prints a JSON string. Returns the original string on parse failure.
+ */
+export function formatJson(input: string): string {
+  try {
+    return JSON.stringify(JSON.parse(input), null, 2);
+  } catch {
+    return input;
+  }
+}
+
+/**
+ * Extract the encoded project directory key from a session path.
+ */
+export function projectKey(path: string): string {
+  const match = path.match(/\/\.claude\/projects\/([^/]+)/);
+  return match ? match[1] : "unknown";
 }

@@ -1,5 +1,6 @@
 import type { TeamSnapshot } from "../types";
 import { getTeamColor, taskStatusIcons } from "../lib/theme";
+import { BackButton } from "./BackButton";
 
 interface TeamBoardProps {
   teams: TeamSnapshot[];
@@ -14,9 +15,7 @@ export function TeamBoard({ teams, onBack }: TeamBoardProps) {
     return (
       <div className="team-board">
         <div className="team-board__header">
-          <button className="message-detail__back" onClick={onBack}>
-            {"\u2190"} Back
-          </button>
+          <BackButton onClick={onBack} />
         </div>
         <div className="empty-state">
           <div className="empty-state__icon">{"\u{1F916}"}</div>
@@ -31,11 +30,7 @@ export function TeamBoard({ teams, onBack }: TeamBoardProps) {
       {activeTeams.map((team, teamIdx) => (
         <div key={teamIdx}>
           <div className="team-board__header">
-            {teamIdx === 0 && (
-              <button className="message-detail__back" onClick={onBack} style={{ marginBottom: 8 }}>
-                {"\u2190"} Back
-              </button>
-            )}
+            {teamIdx === 0 && <BackButton onClick={onBack} />}
             <div className="team-board__title">{team.name || "Team"}</div>
             {team.description && <div className="team-board__desc">{team.description}</div>}
           </div>

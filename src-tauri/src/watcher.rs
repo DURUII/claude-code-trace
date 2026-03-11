@@ -7,19 +7,49 @@ use tokio::sync::mpsc;
 use crate::convert::*;
 use crate::parser::chunk::build_chunks;
 use crate::parser::classify::ClassifiedMsg;
-use crate::parser::ongoing::{is_ongoing, ONGOING_STALENESS_THRESHOLD};
+use crate::parser::ongoing::{is_ongoing, is_subagent_ongoing};
 use crate::parser::session::read_session_incremental;
-use crate::parser::subagent::{discover_subagents, discover_team_sessions, link_subagents, SubagentProcess};
+use crate::parser::subagent::discover_and_link_all;
 use crate::parser::team::reconstruct_teams;
 
 const WATCHER_DEBOUNCE: Duration = Duration::from_millis(500);
 
-/// Handle for stopping the session watcher.
-pub struct SessionWatcherHandle {
+/// Run a debounced file-change loop: receive notify events, apply `filter`,
+/// and send a signal after `WATCHER_DEBOUNCE` of quiet time.
+fn run_debounce_loop(
+    rx: std::sync::mpsc::Receiver<Result<notify::Event, notify::Error>>,
+    filter: impl Fn(&notify::Event) -> bool,
+    signal_tx: mpsc::Sender<()>,
+) {
+    let mut debounce_timer: Option<std::time::Instant> = None;
+
+    loop {
+        match rx.recv_timeout(Duration::from_millis(100)) {
+            Ok(Ok(event)) => {
+                if filter(&event) {
+                    debounce_timer = Some(std::time::Instant::now());
+                }
+            }
+            Ok(Err(_)) => {}
+            Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {}
+            Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => break,
+        }
+
+        if let Some(timer) = debounce_timer {
+            if timer.elapsed() >= WATCHER_DEBOUNCE {
+                debounce_timer = None;
+                let _ = signal_tx.try_send(());
+            }
+        }
+    }
+}
+
+/// Handle for stopping a file watcher (session or picker).
+pub struct WatcherHandle {
     stop_tx: mpsc::Sender<()>,
 }
 
-impl SessionWatcherHandle {
+impl WatcherHandle {
     pub fn stop(&self) {
         let _ = self.stop_tx.try_send(());
     }
@@ -40,7 +70,7 @@ pub fn start_session_watcher(
     initial_classified: Vec<ClassifiedMsg>,
     initial_offset: u64,
     app: AppHandle,
-) -> SessionWatcherHandle {
+) -> WatcherHandle {
     let (stop_tx, mut stop_rx) = mpsc::channel::<()>(1);
     let (signal_tx, mut signal_rx) = mpsc::channel::<()>(4);
 
@@ -65,31 +95,16 @@ pub fn start_session_watcher(
         let project_dir = Path::new(&path).parent().unwrap_or(Path::new(""));
         let _ = watcher.watch(project_dir, RecursiveMode::NonRecursive);
 
-        let mut debounce_timer: Option<std::time::Instant> = None;
-
-        loop {
-            match rx.recv_timeout(Duration::from_millis(100)) {
-                Ok(Ok(event)) => {
-                    let dominated = event.paths.iter().any(|p| {
-                        p.to_string_lossy() == path
-                            || p.extension().map(|e| e == "jsonl").unwrap_or(false)
-                    });
-                    if dominated {
-                        debounce_timer = Some(std::time::Instant::now());
-                    }
-                }
-                Ok(Err(_)) => {}
-                Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {}
-                Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => break,
-            }
-
-            if let Some(timer) = debounce_timer {
-                if timer.elapsed() >= WATCHER_DEBOUNCE {
-                    debounce_timer = None;
-                    let _ = signal_tx.try_send(());
-                }
-            }
-        }
+        run_debounce_loop(
+            rx,
+            |event| {
+                event.paths.iter().any(|p| {
+                    p.to_string_lossy() == path
+                        || p.extension().map(|e| e == "jsonl").unwrap_or(false)
+                })
+            },
+            signal_tx,
+        );
     });
 
     // Spawn the async rebuild loop.
@@ -117,26 +132,11 @@ pub fn start_session_watcher(
 
                     let chunks = build_chunks(&all_classified);
 
-                    let subagents = discover_subagents(&path_for_rebuild).unwrap_or_default();
-                    let team_procs = discover_team_sessions(&path_for_rebuild, &chunks).unwrap_or_default();
-                    let mut all_procs: Vec<SubagentProcess> = subagents;
-                    all_procs.extend(team_procs);
-                    let color_map = link_subagents(&mut all_procs, &chunks, &path_for_rebuild);
+                    let (all_procs, color_map) = discover_and_link_all(&path_for_rebuild, &chunks);
 
                     let mut ongoing = is_ongoing(&chunks);
                     if !ongoing {
-                        for proc in &all_procs {
-                            if is_ongoing(&proc.chunks) {
-                                let elapsed = chrono::Utc::now()
-                                    .signed_duration_since(proc.file_mod_time)
-                                    .to_std()
-                                    .unwrap_or(Duration::ZERO);
-                                if elapsed <= ONGOING_STALENESS_THRESHOLD {
-                                    ongoing = true;
-                                    break;
-                                }
-                            }
-                        }
+                        ongoing = all_procs.iter().any(|p| is_subagent_ongoing(p));
                     }
 
                     let teams = reconstruct_teams(&chunks, &all_procs);
@@ -166,19 +166,9 @@ pub fn start_session_watcher(
         }
     });
 
-    SessionWatcherHandle { stop_tx }
+    WatcherHandle { stop_tx }
 }
 
-/// Handle for stopping the picker watcher.
-pub struct PickerWatcherHandle {
-    stop_tx: mpsc::Sender<()>,
-}
-
-impl PickerWatcherHandle {
-    pub fn stop(&self) {
-        let _ = self.stop_tx.try_send(());
-    }
-}
 
 /// Serializable picker refresh event.
 #[derive(Clone, serde::Serialize)]
@@ -190,7 +180,7 @@ struct PickerRefreshPayload {
 pub fn start_picker_watcher(
     project_dirs: Vec<String>,
     app: AppHandle,
-) -> PickerWatcherHandle {
+) -> WatcherHandle {
     let (stop_tx, mut stop_rx) = mpsc::channel::<()>(1);
     let (signal_tx, mut signal_rx) = mpsc::channel::<()>(4);
 
@@ -212,31 +202,16 @@ pub fn start_picker_watcher(
             }
         }
 
-        let mut debounce_timer: Option<std::time::Instant> = None;
-
-        loop {
-            match rx.recv_timeout(Duration::from_millis(100)) {
-                Ok(Ok(event)) => {
-                    let dominated = event.paths.iter().any(|p| {
-                        let name = p.file_name().and_then(|n| n.to_str()).unwrap_or("");
-                        name.ends_with(".jsonl") && !name.starts_with("agent_")
-                    });
-                    if dominated {
-                        debounce_timer = Some(std::time::Instant::now());
-                    }
-                }
-                Ok(Err(_)) => {}
-                Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {}
-                Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => break,
-            }
-
-            if let Some(timer) = debounce_timer {
-                if timer.elapsed() >= WATCHER_DEBOUNCE {
-                    debounce_timer = None;
-                    let _ = signal_tx.try_send(());
-                }
-            }
-        }
+        run_debounce_loop(
+            rx,
+            |event| {
+                event.paths.iter().any(|p| {
+                    let name = p.file_name().and_then(|n| n.to_str()).unwrap_or("");
+                    name.ends_with(".jsonl") && !name.starts_with("agent_")
+                })
+            },
+            signal_tx,
+        );
     });
 
     // Spawn the async refresh loop.
@@ -257,5 +232,5 @@ pub fn start_picker_watcher(
         }
     });
 
-    PickerWatcherHandle { stop_tx }
+    WatcherHandle { stop_tx }
 }

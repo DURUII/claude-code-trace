@@ -1,4 +1,5 @@
-import { useRef, useEffect, useCallback, useMemo } from "react";
+import { useRef, useCallback, useMemo } from "react";
+import { useScrollToSelected } from "../hooks/useScrollToSelected";
 import type { DisplayMessage } from "../types";
 import {
   shortModel,
@@ -32,11 +33,7 @@ export function MessageList({
   onOpenDetail,
 }: MessageListProps) {
   const listRef = useRef<HTMLDivElement>(null);
-  const selectedRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    selectedRef.current?.scrollIntoView({ block: "nearest" });
-  }, [selectedIndex]);
+  const selectedRef = useScrollToSelected(selectedIndex);
 
   const handleClick = useCallback(
     (index: number) => {

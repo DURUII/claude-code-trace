@@ -48,6 +48,20 @@ impl Default for SubagentProcess {
     }
 }
 
+/// Discover all subagent and team processes for a session, link them, and return
+/// the process list with its color map.
+pub fn discover_and_link_all(
+    session_path: &str,
+    chunks: &[Chunk],
+) -> (Vec<SubagentProcess>, HashMap<String, String>) {
+    let subagents = discover_subagents(session_path).unwrap_or_default();
+    let team_procs = discover_team_sessions(session_path, chunks).unwrap_or_default();
+    let mut all_procs: Vec<SubagentProcess> = subagents;
+    all_procs.extend(team_procs);
+    let color_map = link_subagents(&mut all_procs, chunks, session_path);
+    (all_procs, color_map)
+}
+
 /// Discover and parse subagent files for a session.
 pub fn discover_subagents(session_path: &str) -> Result<Vec<SubagentProcess>, String> {
     let dir = Path::new(session_path).parent().unwrap_or(Path::new(""));

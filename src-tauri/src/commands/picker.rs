@@ -25,19 +25,10 @@ pub async fn watch_picker(
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     // Stop existing picker watcher if any.
-    {
-        let mut guard = state.picker_watcher.lock().map_err(|e| e.to_string())?;
-        if let Some(handle) = guard.take() {
-            handle.stop();
-        }
-    }
+    state.stop_picker_watcher()?;
 
     let handle = start_picker_watcher(project_dirs, app);
-
-    {
-        let mut guard = state.picker_watcher.lock().map_err(|e| e.to_string())?;
-        *guard = Some(handle);
-    }
+    state.set_picker_watcher(handle)?;
 
     Ok(())
 }
@@ -45,9 +36,5 @@ pub async fn watch_picker(
 /// Stop watching project directories.
 #[tauri::command]
 pub async fn unwatch_picker(state: State<'_, AppState>) -> Result<(), String> {
-    let mut guard = state.picker_watcher.lock().map_err(|e| e.to_string())?;
-    if let Some(handle) = guard.take() {
-        handle.stop();
-    }
-    Ok(())
+    state.stop_picker_watcher()
 }

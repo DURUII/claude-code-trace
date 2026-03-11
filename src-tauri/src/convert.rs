@@ -4,7 +4,7 @@ use std::collections::{HashMap, HashSet};
 
 use crate::parser::chunk::*;
 use crate::parser::last_output::{find_last_output, LastOutput, LastOutputType};
-use crate::parser::ongoing::{is_ongoing, ONGOING_STALENESS_THRESHOLD};
+use crate::parser::ongoing::is_subagent_ongoing;
 use crate::parser::subagent::SubagentProcess;
 use crate::parser::team::TeamSnapshot;
 use crate::parser::taxonomy::ToolCategory;
@@ -170,21 +170,6 @@ fn convert_last_output(lo: &LastOutput) -> FrontendLastOutput {
             })
             .collect(),
     }
-}
-
-/// Check if a subagent is ongoing (chunk-based + file staleness).
-fn is_subagent_ongoing(proc: &SubagentProcess) -> bool {
-    if !is_ongoing(&proc.chunks) {
-        return false;
-    }
-    let elapsed = chrono::Utc::now()
-        .signed_duration_since(proc.file_mod_time)
-        .to_std()
-        .unwrap_or(std::time::Duration::ZERO);
-    if elapsed > ONGOING_STALENESS_THRESHOLD {
-        return false;
-    }
-    true
 }
 
 /// Convert display items with subagent linking and color assignment.

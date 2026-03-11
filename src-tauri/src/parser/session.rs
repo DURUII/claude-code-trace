@@ -118,6 +118,13 @@ pub fn current_project_dir() -> Result<String, String> {
     project_dir_for_path(&resolved)
 }
 
+/// Check if a directory entry is a session file (*.jsonl, not agent_*, not a directory).
+fn is_session_file(name: &str, entry: &fs::DirEntry) -> bool {
+    name.ends_with(".jsonl")
+        && !name.starts_with("agent_")
+        && !entry.file_type().map(|t| t.is_dir()).unwrap_or(true)
+}
+
 /// Discover all session .jsonl files in a project directory.
 pub fn discover_project_sessions(project_dir: &str) -> Result<Vec<SessionInfo>, String> {
     let entries = fs::read_dir(project_dir).map_err(|e| format!("reading {}: {}", project_dir, e))?;
@@ -130,10 +137,7 @@ pub fn discover_project_sessions(project_dir: &str) -> Result<Vec<SessionInfo>, 
             Err(_) => continue,
         };
         let name = entry.file_name().to_string_lossy().to_string();
-        if !name.ends_with(".jsonl") || name.starts_with("agent_") {
-            continue;
-        }
-        if entry.file_type().map(|t| t.is_dir()).unwrap_or(true) {
+        if !is_session_file(&name, &entry) {
             continue;
         }
 
@@ -156,12 +160,7 @@ pub fn discover_project_sessions(project_dir: &str) -> Result<Vec<SessionInfo>, 
         if is_ongoing {
             if let Ok(m) = entry.metadata() {
                 if let Ok(modified) = m.modified() {
-                    let elapsed = std::time::SystemTime::now()
-                        .duration_since(modified)
-                        .unwrap_or_default();
-                    if elapsed > std::time::Duration::from_secs(120) {
-                        is_ongoing = false;
-                    }
+                    is_ongoing = super::ongoing::apply_staleness(true, modified);
                 }
             }
         }
@@ -204,15 +203,7 @@ pub fn discover_all_project_sessions(project_dirs: &[String]) -> Result<Vec<Sess
 /// Public for use by SessionCache.
 pub fn session_info_from_metadata(path: &str, mod_time: std::time::SystemTime, meta: SessionMetadata) -> SessionInfo {
     let mod_time_chrono: DateTime<Utc> = mod_time.into();
-    let mut is_ongoing = meta.is_ongoing;
-    if is_ongoing {
-        let elapsed = std::time::SystemTime::now()
-            .duration_since(mod_time)
-            .unwrap_or_default();
-        if elapsed > std::time::Duration::from_secs(120) {
-            is_ongoing = false;
-        }
-    }
+    let is_ongoing = super::ongoing::apply_staleness(meta.is_ongoing, mod_time);
     let name = std::path::Path::new(path)
         .file_name()
         .and_then(|n| n.to_str())
@@ -252,10 +243,7 @@ where
             Err(_) => continue,
         };
         let name = entry.file_name().to_string_lossy().to_string();
-        if !name.ends_with(".jsonl") || name.starts_with("agent_") {
-            continue;
-        }
-        if entry.file_type().map(|t| t.is_dir()).unwrap_or(true) {
+        if !is_session_file(&name, &entry) {
             continue;
         }
 

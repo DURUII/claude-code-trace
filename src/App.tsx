@@ -3,6 +3,8 @@ import { invoke } from "@tauri-apps/api/core";
 import type { ViewState, SessionInfo } from "./types";
 import { useSession } from "./hooks/useSession";
 import { usePicker } from "./hooks/usePicker";
+import { useToggleSet } from "./hooks/useToggleSet";
+import { useKeyboard } from "./hooks/useKeyboard";
 import { SessionPicker } from "./components/SessionPicker";
 import { MessageList } from "./components/MessageList";
 import { MessageDetail } from "./components/MessageDetail";
@@ -16,7 +18,6 @@ import { ProjectTree } from "./components/ProjectTree";
 export function App() {
   const [view, setView] = useState<ViewState>("picker");
   const [selectedMessage, setSelectedMessage] = useState(0);
-  const [expandedMessages, setExpandedMessages] = useState<Set<number>>(new Set());
   const [pickerSelectedIndex, setPickerSelectedIndex] = useState(0);
   const [showKeybinds, setShowKeybinds] = useState(true);
   const [animFrame, setAnimFrame] = useState(0);
@@ -32,10 +33,17 @@ export function App() {
   );
 
   const session = useSession();
-  const picker = usePicker();
+  const picker = usePicker(selectedProject);
 
   const { loadSession, loadDebugLog, sessionPath } = session;
   const { discoverSessions } = picker;
+
+  const {
+    set: expandedMessages,
+    toggle: toggleMessage,
+    clear: clearExpanded,
+    addAll: expandMessages,
+  } = useToggleSet();
 
   // Animation frame for ongoing indicators
   useEffect(() => {
@@ -51,7 +59,6 @@ export function App() {
   useEffect(() => {
     if (discoveredRef.current) return;
     discoveredRef.current = true;
-    // Discover all project directories from ~/.claude/projects/
     const discover = async () => {
       try {
         const dirs = await invoke<string[]>("get_project_dirs");
@@ -71,9 +78,9 @@ export function App() {
       loadSession(sessionInfo.path);
       setView("list");
       setSelectedMessage(0);
-      setExpandedMessages(new Set());
+      clearExpanded();
     },
-    [loadSession],
+    [loadSession, clearExpanded],
   );
 
   // Auto-select newest message (last index) when messages load
@@ -85,16 +92,6 @@ export function App() {
     }
   }, [session.messages.length, view]);
 
-  // Toggle message expand
-  const toggleMessage = useCallback((index: number) => {
-    setExpandedMessages((prev) => {
-      const next = new Set(prev);
-      if (next.has(index)) next.delete(index);
-      else next.add(index);
-      return next;
-    });
-  }, []);
-
   // Open detail view
   const openDetail = useCallback((index: number) => {
     setSelectedMessage(index);
@@ -104,18 +101,16 @@ export function App() {
   // -- Extracted action callbacks for toolbar + keyboard --
 
   const expandAll = useCallback(() => {
-    setExpandedMessages((prev) => {
-      const next = new Set(prev);
-      session.messages.forEach((msg, i) => {
-        if (msg.role === "claude") next.add(i);
-      });
-      return next;
+    const claudeIndices: number[] = [];
+    session.messages.forEach((msg, i) => {
+      if (msg.role === "claude") claudeIndices.push(i);
     });
-  }, [session.messages]);
+    expandMessages(claudeIndices);
+  }, [session.messages, expandMessages]);
 
   const collapseAll = useCallback(() => {
-    setExpandedMessages(new Set());
-  }, []);
+    clearExpanded();
+  }, [clearExpanded]);
 
   // Visual top = newest message = last index (display is reversed)
   const jumpToTop = useCallback(() => {
@@ -150,172 +145,56 @@ export function App() {
     setShowKeybinds((v) => !v);
   }, []);
 
-  // Keyboard navigation
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't handle if an input is focused
-      const target = e.target as HTMLElement;
-      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) {
-        return;
-      }
-
-      switch (view) {
-        case "list":
-          handleListKeys(e);
-          break;
-        case "detail":
-          handleDetailKeys(e);
-          break;
-        case "picker":
-          handlePickerKeys(e);
-          break;
-        case "team":
-          handleTeamKeys(e);
-          break;
-        case "debug":
-          handleDebugKeys(e);
-          break;
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  });
-
-  // -- Key handlers for each view --
-
-  function handleListKeys(e: KeyboardEvent) {
-    switch (e.key) {
-      case "j":
-        e.preventDefault();
-        // Display is reversed (newest first), so j (down) decreases index
-        setSelectedMessage((i) => Math.max(i - 1, 0));
-        break;
-      case "k":
-        e.preventDefault();
-        setSelectedMessage((i) => Math.min(i + 1, session.messages.length - 1));
-        break;
-      case "G":
-        e.preventDefault();
-        // G = visual bottom = oldest message = index 0
-        jumpToTop();
-        break;
-      case "g":
-        e.preventDefault();
-        // g = visual top = newest message = last index
-        jumpToBottom();
-        break;
-      case "Tab":
-        e.preventDefault();
-        toggleMessage(selectedMessage);
-        break;
-      case "Enter":
-        e.preventDefault();
-        if (session.messages.length > 0) {
-          openDetail(selectedMessage);
-        }
-        break;
-      case "e":
-        e.preventDefault();
-        expandAll();
-        break;
-      case "c":
-        e.preventDefault();
-        collapseAll();
-        break;
-      case "t":
-        e.preventDefault();
-        openTeams();
-        break;
-      case "d":
-        e.preventDefault();
-        openDebug();
-        break;
-      case "q":
-      case "Escape":
-        e.preventDefault();
-        goToSessions();
-        break;
-      case "s":
-        e.preventDefault();
-        goToSessions();
-        break;
-      case "?":
-        e.preventDefault();
-        toggleKeybinds();
-        break;
-    }
-  }
-
-  function handleDetailKeys(e: KeyboardEvent) {
-    switch (e.key) {
-      case "q":
-      case "Escape":
-        e.preventDefault();
-        setView("list");
-        break;
-      case "?":
-        e.preventDefault();
-        toggleKeybinds();
-        break;
-    }
-  }
-
-  function handlePickerKeys(e: KeyboardEvent) {
-    switch (e.key) {
-      case "j":
-        e.preventDefault();
+  // Keyboard navigation — build keyMap per view
+  const keyMap: Record<string, () => void> = {};
+  switch (view) {
+    case "list":
+      keyMap["j"] = () => setSelectedMessage((i) => Math.max(i - 1, 0));
+      keyMap["k"] = () => setSelectedMessage((i) => Math.min(i + 1, session.messages.length - 1));
+      keyMap["G"] = jumpToTop;
+      keyMap["g"] = jumpToBottom;
+      keyMap["Tab"] = () => toggleMessage(selectedMessage);
+      keyMap["Enter"] = () => {
+        if (session.messages.length > 0) openDetail(selectedMessage);
+      };
+      keyMap["e"] = expandAll;
+      keyMap["c"] = collapseAll;
+      keyMap["t"] = openTeams;
+      keyMap["d"] = openDebug;
+      keyMap["q"] = goToSessions;
+      keyMap["Escape"] = goToSessions;
+      keyMap["s"] = goToSessions;
+      keyMap["?"] = toggleKeybinds;
+      break;
+    case "detail":
+      keyMap["q"] = () => setView("list");
+      keyMap["Escape"] = () => setView("list");
+      keyMap["?"] = toggleKeybinds;
+      break;
+    case "picker":
+      keyMap["j"] = () =>
         setPickerSelectedIndex((i) => Math.min(i + 1, picker.sessions.length - 1));
-        break;
-      case "k":
-        e.preventDefault();
-        setPickerSelectedIndex((i) => Math.max(i - 1, 0));
-        break;
-      case "Enter":
-        e.preventDefault();
-        if (picker.sessions[pickerSelectedIndex]) {
+      keyMap["k"] = () => setPickerSelectedIndex((i) => Math.max(i - 1, 0));
+      keyMap["Enter"] = () => {
+        if (picker.sessions[pickerSelectedIndex])
           handleSelectSession(picker.sessions[pickerSelectedIndex]);
-        }
-        break;
-      case "q":
-      case "Escape":
-        e.preventDefault();
-        backToList();
-        break;
-      case "?":
-        e.preventDefault();
-        toggleKeybinds();
-        break;
-    }
+      };
+      keyMap["q"] = backToList;
+      keyMap["Escape"] = backToList;
+      keyMap["?"] = toggleKeybinds;
+      break;
+    case "team":
+      keyMap["q"] = () => setView("list");
+      keyMap["Escape"] = () => setView("list");
+      keyMap["?"] = toggleKeybinds;
+      break;
+    case "debug":
+      keyMap["q"] = () => setView("list");
+      keyMap["Escape"] = () => setView("list");
+      keyMap["?"] = toggleKeybinds;
+      break;
   }
-
-  function handleTeamKeys(e: KeyboardEvent) {
-    switch (e.key) {
-      case "q":
-      case "Escape":
-        e.preventDefault();
-        setView("list");
-        break;
-      case "?":
-        e.preventDefault();
-        toggleKeybinds();
-        break;
-    }
-  }
-
-  function handleDebugKeys(e: KeyboardEvent) {
-    switch (e.key) {
-      case "q":
-      case "Escape":
-        e.preventDefault();
-        setView("list");
-        break;
-      case "?":
-        e.preventDefault();
-        toggleKeybinds();
-        break;
-    }
-  }
+  useKeyboard(keyMap);
 
   // Keybind bar click actions
   const keybindActions: Record<string, () => void> = {};
@@ -335,18 +214,13 @@ export function App() {
     keybindActions["back"] = () => setView("list");
   }
 
-  // Filter sessions by selected project
-  const filteredByProject = selectedProject
-    ? picker.sessions.filter((s) => s.path.includes(`/.claude/projects/${selectedProject}/`))
-    : picker.sessions;
-
   // Render the active view
   const renderView = () => {
     switch (view) {
       case "picker":
         return (
           <SessionPicker
-            sessions={filteredByProject}
+            sessions={picker.sessions}
             loading={picker.loading}
             searchQuery={picker.searchQuery}
             selectedIndex={pickerSelectedIndex}

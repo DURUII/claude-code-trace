@@ -90,19 +90,6 @@ export function getContextColor(pct: number): string {
   return colors.contextCrit;
 }
 
-export function getPillColor(mode: string): string {
-  switch (mode) {
-    case "bypassPermissions":
-      return colors.pillBypass;
-    case "acceptEdits":
-      return colors.pillAcceptEdits;
-    case "plan":
-      return colors.pillPlan;
-    default:
-      return colors.textMuted;
-  }
-}
-
 // Tool category icon labels (unicode fallbacks for web)
 export const toolCategoryIcons: Record<string, string> = {
   Read: "\u{1F4D6}",

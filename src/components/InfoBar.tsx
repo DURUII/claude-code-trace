@@ -11,13 +11,7 @@ interface InfoBarProps {
   animFrame?: number;
 }
 
-export function InfoBar({
-  meta,
-  gitInfo,
-  messages,
-  ongoing,
-  animFrame = 0,
-}: InfoBarProps) {
+export function InfoBar({ meta, gitInfo, messages, ongoing, animFrame = 0 }: InfoBarProps) {
   const projectName = shortPath(meta.cwd, meta.git_branch);
   const branch = gitInfo?.branch || meta.git_branch;
   const dirty = gitInfo?.dirty ?? false;
@@ -35,22 +29,16 @@ export function InfoBar({
 
   return (
     <div className="info-bar">
-      {projectName && (
-        <span className="info-bar__project">{projectName}</span>
-      )}
+      {projectName && <span className="info-bar__project">{projectName}</span>}
 
       {branch && (
-        <span
-          className={`info-bar__branch${dirty ? " info-bar__branch--dirty" : ""}`}
-        >
+        <span className={`info-bar__branch${dirty ? " info-bar__branch--dirty" : ""}`}>
           {branch}
         </span>
       )}
 
       {mode && mode !== "default" && (
-        <span className={`info-bar__pill ${pillClass}`}>
-          {shortMode(mode)}
-        </span>
+        <span className={`info-bar__pill ${pillClass}`}>{shortMode(mode)}</span>
       )}
 
       {ctxPct >= 0 && (

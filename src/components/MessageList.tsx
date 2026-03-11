@@ -46,14 +46,14 @@ export function MessageList({
         onSelect(index);
       }
     },
-    [selectedIndex, onSelect, onToggle]
+    [selectedIndex, onSelect, onToggle],
   );
 
   const handleDoubleClick = useCallback(
     (index: number) => {
       onOpenDetail(index);
     },
-    [onOpenDetail]
+    [onOpenDetail],
   );
 
   // Reverse order: newest messages first
@@ -152,15 +152,10 @@ function MessageItem({
   const modelColor = msg.model ? getModelColor(msg.model) : undefined;
   const time = formatExactTime(msg.timestamp);
 
-  const contentPreview = isExpanded
-    ? msg.content
-    : truncate(firstLine(msg.content), 200);
+  const contentPreview = isExpanded ? msg.content : truncate(firstLine(msg.content), 200);
 
   const hasStats =
-    msg.tokens_raw > 0 ||
-    msg.tool_call_count > 0 ||
-    msg.thinking_count > 0 ||
-    msg.duration_ms > 0;
+    msg.tokens_raw > 0 || msg.tool_call_count > 0 || msg.thinking_count > 0 || msg.duration_ms > 0;
 
   return (
     <div
@@ -182,11 +177,7 @@ function MessageItem({
         <span
           className={`message__role message__role--${msg.role === "claude" ? "claude" : msg.role === "user" ? "user" : "system"}`}
         >
-          {msg.role === "user"
-            ? "User"
-            : msg.role === "claude"
-              ? "Claude"
-              : "System"}
+          {msg.role === "user" ? "User" : msg.role === "claude" ? "Claude" : "System"}
         </span>
         {model && (
           <span className="message__model" style={{ color: modelColor }}>
@@ -194,9 +185,7 @@ function MessageItem({
           </span>
         )}
         {msg.subagent_label && (
-          <span className="detail-item__subagent-badge">
-            {msg.subagent_label}
-          </span>
+          <span className="detail-item__subagent-badge">{msg.subagent_label}</span>
         )}
         {time && <span className="message__timestamp">{time}</span>}
         {isLastOngoing && (
@@ -206,9 +195,7 @@ function MessageItem({
         )}
       </div>
 
-      <div
-        className={`message__content${!isExpanded ? " message__content--collapsed" : ""}`}
-      >
+      <div className={`message__content${!isExpanded ? " message__content--collapsed" : ""}`}>
         {contentPreview}
       </div>
 

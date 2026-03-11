@@ -35,35 +35,35 @@ Select a session to view the conversation. Click messages to expand tool calls, 
 
 **List view**
 
-| Key | Action |
-|-----|--------|
-| `j` / `k` | Move cursor down / up |
-| `G` / `g` | Jump to last / first message |
-| `Tab` | Toggle expand/collapse current message |
-| `e` / `c` | Expand / collapse all Claude messages |
-| `Enter` | Open detail view |
-| `d` | Open debug log viewer |
-| `t` | Open team task board (when teams exist) |
-| `s` / `q` / `Esc` | Open session picker |
+| Key               | Action                                  |
+| ----------------- | --------------------------------------- |
+| `j` / `k`         | Move cursor down / up                   |
+| `G` / `g`         | Jump to last / first message            |
+| `Tab`             | Toggle expand/collapse current message  |
+| `e` / `c`         | Expand / collapse all Claude messages   |
+| `Enter`           | Open detail view                        |
+| `d`               | Open debug log viewer                   |
+| `t`               | Open team task board (when teams exist) |
+| `s` / `q` / `Esc` | Open session picker                     |
 
 **Detail view**
 
-| Key | Action |
-|-----|--------|
+| Key         | Action       |
+| ----------- | ------------ |
 | `q` / `Esc` | Back to list |
 
 **Session picker**
 
-| Key | Action |
-|-----|--------|
-| `j` / `k` | Navigate sessions |
-| `Enter` | Open selected session |
-| `q` / `Esc` | Back to list |
+| Key         | Action                |
+| ----------- | --------------------- |
+| `j` / `k`   | Navigate sessions     |
+| `Enter`     | Open selected session |
+| `q` / `Esc` | Back to list          |
 
 **Debug log viewer**
 
-| Key | Action |
-|-----|--------|
+| Key         | Action       |
+| ----------- | ------------ |
 | `q` / `Esc` | Back to list |
 
 ## Development

@@ -21,9 +21,7 @@ export function DebugViewer({ entries, onBack }: DebugViewerProps) {
     let result = entries;
 
     if (levelFilter === "warn") {
-      result = result.filter(
-        (e) => e.level === "warn" || e.level === "error"
-      );
+      result = result.filter((e) => e.level === "warn" || e.level === "error");
     } else if (levelFilter === "error") {
       result = result.filter((e) => e.level === "error");
     }
@@ -34,7 +32,7 @@ export function DebugViewer({ entries, onBack }: DebugViewerProps) {
         (e) =>
           e.message.toLowerCase().includes(lower) ||
           e.category.toLowerCase().includes(lower) ||
-          e.extra.toLowerCase().includes(lower)
+          e.extra.toLowerCase().includes(lower),
       );
     }
 
@@ -127,9 +125,7 @@ export function DebugViewer({ entries, onBack }: DebugViewerProps) {
       </div>
 
       <div className="debug-viewer__body" ref={bodyRef}>
-        {filtered.length === 0 && (
-          <div className="picker__empty">No matching entries</div>
-        )}
+        {filtered.length === 0 && <div className="picker__empty">No matching entries</div>}
 
         {filtered.map((entry, idx) => {
           const isSelected = idx === selectedIndex;
@@ -146,27 +142,20 @@ export function DebugViewer({ entries, onBack }: DebugViewerProps) {
                   if (hasExtra) toggleExpand(idx);
                 }}
               >
-                <span className="debug-entry__timestamp">
-                  {entry.timestamp}
-                </span>
-                <span
-                  className={`debug-entry__level debug-entry__level--${entry.level}`}
-                >
+                <span className="debug-entry__timestamp">{entry.timestamp}</span>
+                <span className={`debug-entry__level debug-entry__level--${entry.level}`}>
                   {entry.level}
                 </span>
-                <span className="debug-entry__category">
-                  {entry.category}
-                </span>
+                <span className="debug-entry__category">{entry.category}</span>
                 <span className="debug-entry__message">{entry.message}</span>
                 {entry.count > 1 && (
                   <span className="debug-entry__count">
-                    {"\u00D7"}{entry.count}
+                    {"\u00D7"}
+                    {entry.count}
                   </span>
                 )}
               </div>
-              {isExpanded && hasExtra && (
-                <div className="debug-entry__extra">{entry.extra}</div>
-              )}
+              {isExpanded && hasExtra && <div className="debug-entry__extra">{entry.extra}</div>}
             </div>
           );
         })}

@@ -118,8 +118,7 @@ export function useSession() {
           ongoing: event.payload.ongoing,
           meta: {
             ...prev.meta,
-            permission_mode:
-              event.payload.permission_mode || prev.meta.permission_mode,
+            permission_mode: event.payload.permission_mode || prev.meta.permission_mode,
           },
         }));
       });

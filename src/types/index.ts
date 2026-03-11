@@ -19,12 +19,7 @@ export interface DisplayMessage {
   subagent_label: string;
 }
 
-export type DisplayItemType =
-  | "Thinking"
-  | "Output"
-  | "ToolCall"
-  | "Subagent"
-  | "TeammateMessage";
+export type DisplayItemType = "Thinking" | "Output" | "ToolCall" | "Subagent" | "TeammateMessage";
 
 export interface DisplayItem {
   item_type: DisplayItemType;

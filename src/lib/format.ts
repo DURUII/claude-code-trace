@@ -49,13 +49,7 @@ export function formatDuration(ms: number): string {
  * Standard UUIDs show only first 8 chars; renamed sessions show up to 20.
  */
 export function formatSessionName(id: string): string {
-  if (
-    id.length === 36 &&
-    id[8] === "-" &&
-    id[13] === "-" &&
-    id[18] === "-" &&
-    id[23] === "-"
-  ) {
+  if (id.length === 36 && id[8] === "-" && id[13] === "-" && id[18] === "-" && id[23] === "-") {
     return id.slice(0, 8);
   }
   return id.length > 20 ? id.slice(0, 20) + "\u2026" : id;
@@ -97,15 +91,12 @@ export function contextPercent(msgs: DisplayMessage[]): number {
   const contextWindowSize = 200_000;
   for (let i = msgs.length - 1; i >= 0; i--) {
     if (msgs[i].role === "claude" && msgs[i].context_tokens > 0) {
-      const pct = Math.floor(
-        (msgs[i].context_tokens * 100) / contextWindowSize
-      );
+      const pct = Math.floor((msgs[i].context_tokens * 100) / contextWindowSize);
       return Math.min(pct, 100);
     }
   }
   return -1;
 }
-
 
 /**
  * Formats a timestamp as yyyy-mm-dd hh:mm:ss.
@@ -131,14 +122,10 @@ export function formatExactTime(ts: string): string {
  * Groups sessions by date category, sorted by mod_time descending within each group.
  */
 export function groupByDate<T extends { mod_time: string }>(
-  items: T[]
+  items: T[],
 ): { category: string; items: T[] }[] {
   const now = new Date();
-  const todayStart = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate()
-  );
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const yesterdayStart = new Date(todayStart.getTime() - 86400000);
   const weekStart = new Date(todayStart.getTime() - 7 * 86400000);
   const monthStart = new Date(todayStart.getTime() - 30 * 86400000);
@@ -161,9 +148,7 @@ export function groupByDate<T extends { mod_time: string }>(
   // Sort each group by mod_time descending (most recent first)
   for (const cat of order) {
     if (groups[cat]) {
-      groups[cat].sort(
-        (a, b) => new Date(b.mod_time).getTime() - new Date(a.mod_time).getTime()
-      );
+      groups[cat].sort((a, b) => new Date(b.mod_time).getTime() - new Date(a.mod_time).getTime());
     }
   }
 

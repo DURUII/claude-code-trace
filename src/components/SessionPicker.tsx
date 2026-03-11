@@ -62,9 +62,7 @@ export function SessionPicker({
       <div className="picker__list" ref={listRef}>
         {loading && (
           <div className="picker__loading">
-            <span className="spinner">
-              {spinnerFrames[animFrame % spinnerFrames.length]}
-            </span>
+            <span className="spinner">{spinnerFrames[animFrame % spinnerFrames.length]}</span>
             Discovering sessions...
           </div>
         )}
@@ -94,10 +92,7 @@ export function SessionPicker({
                 >
                   <div className="picker__session-top">
                     <span className="picker__session-preview">
-                      {truncate(
-                        session.first_message || session.session_id,
-                        80,
-                      )}
+                      {truncate(session.first_message || session.session_id, 80)}
                     </span>
                     {session.is_ongoing && (
                       <span className="picker__session-ongoing">
@@ -107,15 +102,10 @@ export function SessionPicker({
                     )}
                   </div>
                   <div className="picker__session-meta">
-                    <span
-                      className="picker__session-model"
-                      style={{ color: modelClr }}
-                    >
+                    <span className="picker__session-model" style={{ color: modelClr }}>
                       {model}
                     </span>
-                    <span className="picker__session-stat">
-                      {session.turn_count} turns
-                    </span>
+                    <span className="picker__session-stat">{session.turn_count} turns</span>
                     {session.total_tokens > 0 && (
                       <span className="picker__session-stat">
                         {formatTokens(session.total_tokens)} tok

@@ -63,16 +63,13 @@ export function usePicker() {
     let cancelled = false;
 
     const setupListener = async () => {
-      const unlisten = await listen<{ sessions: SessionInfo[] }>(
-        "picker-refresh",
-        (event) => {
-          if (cancelled) return;
-          setState((prev) => ({
-            ...prev,
-            sessions: clearStaleSessions(event.payload.sessions),
-          }));
-        }
-      );
+      const unlisten = await listen<{ sessions: SessionInfo[] }>("picker-refresh", (event) => {
+        if (cancelled) return;
+        setState((prev) => ({
+          ...prev,
+          sessions: clearStaleSessions(event.payload.sessions),
+        }));
+      });
 
       if (!cancelled) {
         unlistenRef.current = unlisten;
@@ -116,13 +113,9 @@ export function usePicker() {
   const filteredSessions = state.searchQuery
     ? state.sessions.filter(
         (s) =>
-          s.first_message
-            .toLowerCase()
-            .includes(state.searchQuery.toLowerCase()) ||
-          s.session_id
-            .toLowerCase()
-            .includes(state.searchQuery.toLowerCase()) ||
-          s.model.toLowerCase().includes(state.searchQuery.toLowerCase())
+          s.first_message.toLowerCase().includes(state.searchQuery.toLowerCase()) ||
+          s.session_id.toLowerCase().includes(state.searchQuery.toLowerCase()) ||
+          s.model.toLowerCase().includes(state.searchQuery.toLowerCase()),
       )
     : state.sessions;
 

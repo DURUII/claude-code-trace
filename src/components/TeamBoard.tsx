@@ -32,27 +32,19 @@ export function TeamBoard({ teams, onBack }: TeamBoardProps) {
         <div key={teamIdx}>
           <div className="team-board__header">
             {teamIdx === 0 && (
-              <button
-                className="message-detail__back"
-                onClick={onBack}
-                style={{ marginBottom: 8 }}
-              >
+              <button className="message-detail__back" onClick={onBack} style={{ marginBottom: 8 }}>
                 {"\u2190"} Back
               </button>
             )}
             <div className="team-board__title">{team.name || "Team"}</div>
-            {team.description && (
-              <div className="team-board__desc">{team.description}</div>
-            )}
+            {team.description && <div className="team-board__desc">{team.description}</div>}
           </div>
 
           <div className="team-board__body">
             {/* Members */}
             {team.members.length > 0 && (
               <div className="team-board__section">
-                <div className="team-board__section-title">
-                  Members ({team.members.length})
-                </div>
+                <div className="team-board__section-title">Members ({team.members.length})</div>
                 <div>
                   {team.members.map((member) => {
                     const colorName = team.member_colors[member] ?? "";
@@ -61,10 +53,7 @@ export function TeamBoard({ teams, onBack }: TeamBoardProps) {
 
                     return (
                       <span key={member} className="team-member">
-                        <span
-                          className="team-member__dot"
-                          style={{ backgroundColor: color }}
-                        />
+                        <span className="team-member__dot" style={{ backgroundColor: color }} />
                         <span className="team-member__name">{member}</span>
                         {isOngoing && <span className="team-member__ongoing" />}
                       </span>
@@ -77,12 +66,9 @@ export function TeamBoard({ teams, onBack }: TeamBoardProps) {
             {/* Tasks */}
             {team.tasks.length > 0 && (
               <div className="team-board__section">
-                <div className="team-board__section-title">
-                  Tasks ({team.tasks.length})
-                </div>
+                <div className="team-board__section-title">Tasks ({team.tasks.length})</div>
                 {team.tasks.map((task) => {
-                  const statusIcon =
-                    taskStatusIcons[task.status] ?? taskStatusIcons.pending;
+                  const statusIcon = taskStatusIcons[task.status] ?? taskStatusIcons.pending;
                   const statusClass = task.status.replace(/\s+/g, "_");
 
                   return (
@@ -93,9 +79,7 @@ export function TeamBoard({ teams, onBack }: TeamBoardProps) {
                         {statusIcon}
                       </span>
                       <div className="team-task__content">
-                        <div className="team-task__subject">
-                          {task.subject}
-                        </div>
+                        <div className="team-task__subject">{task.subject}</div>
                         {task.owner && (
                           <div className="team-task__owner">
                             {"\u2192"} {task.owner}

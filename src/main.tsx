@@ -21,5 +21,5 @@ if (!rootEl) throw new Error("Missing #root element");
 ReactDOM.createRoot(rootEl).render(
   <React.StrictMode>
     <App />
-  </React.StrictMode>
+  </React.StrictMode>,
 );

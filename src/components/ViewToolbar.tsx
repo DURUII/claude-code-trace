@@ -42,18 +42,10 @@ export function ViewToolbar({
           Collapse All
         </button>
         <span className="view-toolbar__separator" />
-        <button
-          className="view-toolbar__btn"
-          onClick={onJumpTop}
-          disabled={messageCount === 0}
-        >
+        <button className="view-toolbar__btn" onClick={onJumpTop} disabled={messageCount === 0}>
           Top
         </button>
-        <button
-          className="view-toolbar__btn"
-          onClick={onJumpBottom}
-          disabled={messageCount === 0}
-        >
+        <button className="view-toolbar__btn" onClick={onJumpBottom} disabled={messageCount === 0}>
           Bottom
         </button>
         <span className="view-toolbar__separator" />

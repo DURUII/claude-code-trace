@@ -46,21 +46,11 @@ export function MessageDetail({ message: msg, onBack }: MessageDetailProps) {
           {"\u2190"} Back
         </button>
         <span className="message-detail__title">
-          {msg.role === "user"
-            ? "User"
-            : msg.role === "claude"
-              ? "Claude"
-              : "System"}
+          {msg.role === "user" ? "User" : msg.role === "claude" ? "Claude" : "System"}
         </span>
-        {model && (
-          <span style={{ color: modelColor, fontWeight: 600, fontSize: 12 }}>
-            {model}
-          </span>
-        )}
+        {model && <span style={{ color: modelColor, fontWeight: 600, fontSize: 12 }}>{model}</span>}
         {msg.subagent_label && (
-          <span className="detail-item__subagent-badge">
-            {msg.subagent_label}
-          </span>
+          <span className="detail-item__subagent-badge">{msg.subagent_label}</span>
         )}
         <span className="message-detail__meta">
           {time}
@@ -91,9 +81,7 @@ export function MessageDetail({ message: msg, onBack }: MessageDetailProps) {
           {/* Structured items */}
           {hasItems && (
             <div className="detail-items">
-              <div className="detail-items__section-label">
-                Items ({msg.items.length})
-              </div>
+              <div className="detail-items__section-label">Items ({msg.items.length})</div>
               {msg.items.map((item, idx) => (
                 <DetailItem
                   key={idx}
@@ -159,23 +147,16 @@ function DetailItem({
           {"\u25B6"}
         </span>
         <span className="detail-item__icon">{icon}</span>
-        <span
-          className="detail-item__name"
-          style={teamClr ? { color: teamClr } : undefined}
-        >
+        <span className="detail-item__name" style={teamClr ? { color: teamClr } : undefined}>
           {name}
         </span>
         <span className="detail-item__summary">{summary}</span>
         <span className="detail-item__right">
           {item.duration_ms > 0 && (
-            <span className="detail-item__duration">
-              {formatDuration(item.duration_ms)}
-            </span>
+            <span className="detail-item__duration">{formatDuration(item.duration_ms)}</span>
           )}
           {item.token_count > 0 && (
-            <span className="detail-item__tokens">
-              {formatTokens(item.token_count)} tok
-            </span>
+            <span className="detail-item__tokens">{formatTokens(item.token_count)} tok</span>
           )}
           {item.subagent_ongoing && <span className="detail-item__ongoing-dot" />}
         </span>
@@ -191,9 +172,7 @@ function DetailItemBody({ item }: { item: DisplayItem }) {
     case "Thinking":
       return (
         <div className="detail-item__body">
-          <div className="detail-item__text detail-item__text--thinking">
-            {item.text}
-          </div>
+          <div className="detail-item__text detail-item__text--thinking">{item.text}</div>
         </div>
       );
 

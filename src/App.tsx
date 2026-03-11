@@ -15,15 +15,16 @@ import { ViewToolbar } from "./components/ViewToolbar";
 export function App() {
   const [view, setView] = useState<ViewState>("picker");
   const [selectedMessage, setSelectedMessage] = useState(0);
-  const [expandedMessages, setExpandedMessages] = useState<Set<number>>(
-    new Set(),
-  );
+  const [expandedMessages, setExpandedMessages] = useState<Set<number>>(new Set());
   const [pickerSelectedIndex, setPickerSelectedIndex] = useState(0);
   const [showKeybinds, setShowKeybinds] = useState(true);
   const [animFrame, setAnimFrame] = useState(0);
 
   const session = useSession();
   const picker = usePicker();
+
+  const { loadSession, loadDebugLog, sessionPath } = session;
+  const { discoverSessions } = picker;
 
   // Animation frame for ongoing indicators
   useEffect(() => {
@@ -44,31 +45,31 @@ export function App() {
       try {
         const dirs = await invoke<string[]>("get_project_dirs");
         if (dirs.length > 0) {
-          picker.discoverSessions(dirs);
+          discoverSessions(dirs);
         }
       } catch (err) {
         console.error("Failed to get project dirs:", err);
       }
     };
     discover();
-  }, [picker.discoverSessions]);
+  }, [discoverSessions]);
 
   // Handle session selection from picker
   const handleSelectSession = useCallback(
     (sessionInfo: SessionInfo) => {
-      session.loadSession(sessionInfo.path);
+      loadSession(sessionInfo.path);
       setView("list");
       setSelectedMessage(0);
       setExpandedMessages(new Set());
     },
-    [session.loadSession],
+    [loadSession],
   );
 
   // Auto-select newest message (last index) when messages load
   useEffect(() => {
     if (session.messages.length > 0 && view === "list") {
       setSelectedMessage((prev) =>
-        prev >= session.messages.length ? session.messages.length - 1 : prev
+        prev >= session.messages.length ? session.messages.length - 1 : prev,
       );
     }
   }, [session.messages.length, view]);
@@ -116,11 +117,11 @@ export function App() {
   }, []);
 
   const openDebug = useCallback(() => {
-    if (session.sessionPath) {
-      session.loadDebugLog(session.sessionPath);
+    if (sessionPath) {
+      loadDebugLog(sessionPath);
       setView("debug");
     }
-  }, [session.sessionPath, session.loadDebugLog]);
+  }, [sessionPath, loadDebugLog]);
 
   const openTeams = useCallback(() => {
     if (session.teams.length > 0) setView("team");
@@ -131,8 +132,8 @@ export function App() {
   }, []);
 
   const backToList = useCallback(() => {
-    if (session.sessionPath) setView("list");
-  }, [session.sessionPath]);
+    if (sessionPath) setView("list");
+  }, [sessionPath]);
 
   const toggleKeybinds = useCallback(() => {
     setShowKeybinds((v) => !v);
@@ -143,11 +144,7 @@ export function App() {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Don't handle if an input is focused
       const target = e.target as HTMLElement;
-      if (
-        target.tagName === "INPUT" ||
-        target.tagName === "TEXTAREA" ||
-        target.isContentEditable
-      ) {
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) {
         return;
       }
 
@@ -257,9 +254,7 @@ export function App() {
     switch (e.key) {
       case "j":
         e.preventDefault();
-        setPickerSelectedIndex((i) =>
-          Math.min(i + 1, picker.sessions.length - 1),
-        );
+        setPickerSelectedIndex((i) => Math.min(i + 1, picker.sessions.length - 1));
         break;
       case "k":
         e.preventDefault();
@@ -361,10 +356,7 @@ export function App() {
         );
 
       case "detail":
-        if (
-          session.messages.length > 0 &&
-          selectedMessage < session.messages.length
-        ) {
+        if (session.messages.length > 0 && selectedMessage < session.messages.length) {
           return (
             <MessageDetail
               message={session.messages[selectedMessage]}
@@ -375,17 +367,10 @@ export function App() {
         return null;
 
       case "team":
-        return (
-          <TeamBoard teams={session.teams} onBack={() => setView("list")} />
-        );
+        return <TeamBoard teams={session.teams} onBack={() => setView("list")} />;
 
       case "debug":
-        return (
-          <DebugViewer
-            entries={session.debugEntries}
-            onBack={() => setView("list")}
-          />
-        );
+        return <DebugViewer entries={session.debugEntries} onBack={() => setView("list")} />;
     }
   };
 

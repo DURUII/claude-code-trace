@@ -22,6 +22,49 @@ interface ProjectNode {
   hasOngoing: boolean;
 }
 
+function buildProjectNodes(sessions: SessionInfo[]): ProjectNode[] {
+  const map = new Map<string, { name: string; count: number; ongoing: boolean }>();
+
+  for (const s of sessions) {
+    const key = projectKey(s.path);
+    const existing = map.get(key);
+    if (existing) {
+      existing.count++;
+      if (s.is_ongoing) existing.ongoing = true;
+    } else {
+      map.set(key, {
+        name: shortPath(s.cwd) || key,
+        count: 1,
+        ongoing: s.is_ongoing,
+      });
+    }
+  }
+
+  const nodes: ProjectNode[] = [];
+  for (const [key, val] of map) {
+    nodes.push({
+      name: val.name,
+      key,
+      sessionCount: val.count,
+      hasOngoing: val.ongoing,
+    });
+  }
+
+  nodes.sort((a, b) => a.name.localeCompare(b.name));
+  return nodes;
+}
+
+/**
+ * Returns the ordered list of project keys as displayed in the tree.
+ * Index 0 = null ("All Projects"), index 1+ = project keys sorted by display name.
+ */
+export function useProjectKeys(sessions: SessionInfo[]): (string | null)[] {
+  return useMemo(() => {
+    const nodes = buildProjectNodes(sessions);
+    return [null, ...nodes.map((n) => n.key)];
+  }, [sessions]);
+}
+
 export function ProjectTree({
   sessions,
   selectedProject,
@@ -33,37 +76,7 @@ export function ProjectTree({
   refreshing,
   style,
 }: ProjectTreeProps) {
-  const projects = useMemo(() => {
-    const map = new Map<string, { name: string; count: number; ongoing: boolean }>();
-
-    for (const s of sessions) {
-      const key = projectKey(s.path);
-      const existing = map.get(key);
-      if (existing) {
-        existing.count++;
-        if (s.is_ongoing) existing.ongoing = true;
-      } else {
-        map.set(key, {
-          name: shortPath(s.cwd) || key,
-          count: 1,
-          ongoing: s.is_ongoing,
-        });
-      }
-    }
-
-    const nodes: ProjectNode[] = [];
-    for (const [key, val] of map) {
-      nodes.push({
-        name: val.name,
-        key,
-        sessionCount: val.count,
-        hasOngoing: val.ongoing,
-      });
-    }
-
-    nodes.sort((a, b) => a.name.localeCompare(b.name));
-    return nodes;
-  }, [sessions]);
+  const projects = useMemo(() => buildProjectNodes(sessions), [sessions]);
 
   const scrollRef = useScrollToSelected(highlightedIndex);
 
@@ -121,13 +134,4 @@ export function ProjectTree({
       </div>
     </div>
   );
-}
-
-/** Returns the total number of items in the project tree (1 for "All" + projects) */
-export function useProjectCount(sessions: SessionInfo[]): number {
-  const keys = new Set<string>();
-  for (const s of sessions) {
-    keys.add(projectKey(s.path));
-  }
-  return keys.size + 1; // +1 for "All Projects"
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import type { ViewState, SessionInfo } from "./types";
 import { useSession } from "./hooks/useSession";
@@ -13,9 +13,8 @@ import { DebugViewer } from "./components/DebugViewer";
 import { InfoBar } from "./components/InfoBar";
 import { KeybindBar } from "./components/KeybindBar";
 import { ViewToolbar } from "./components/ViewToolbar";
-import { ProjectTree, useProjectCount } from "./components/ProjectTree";
+import { ProjectTree, useProjectKeys } from "./components/ProjectTree";
 import { ResizeHandle } from "./components/ResizeHandle";
-import { projectKey } from "./lib/format";
 
 export function App() {
   const [view, setView] = useState<ViewState>("picker");
@@ -40,7 +39,7 @@ export function App() {
 
   const session = useSession();
   const picker = usePicker(selectedProject);
-  const projectCount = useProjectCount(picker.allSessions);
+  const projectKeys = useProjectKeys(picker.allSessions);
 
   const { loadSession, loadDebugLog, sessionPath } = session;
   const { discoverSessions } = picker;
@@ -164,16 +163,6 @@ export function App() {
     setShowKeybinds((v) => !v);
   }, []);
 
-  // Build project keys list for sidebar Enter selection
-  const projectKeys = useMemo(() => {
-    const keys = new Set<string>();
-    for (const s of picker.allSessions) {
-      keys.add(projectKey(s.path));
-    }
-    const sorted = [...keys].sort();
-    return [null as string | null, ...sorted]; // index 0 = "All", 1+ = project keys
-  }, [picker.allSessions]);
-
   const selectProjectByIndex = useCallback(
     (index: number) => {
       if (index >= 0 && index < projectKeys.length) {
@@ -188,7 +177,7 @@ export function App() {
 
   // Sidebar-focused shortcuts (override main shortcuts when sidebar has focus)
   if (sidebarFocused) {
-    keyMap["j"] = () => setSidebarHighlight((i) => Math.min(i + 1, projectCount - 1));
+    keyMap["j"] = () => setSidebarHighlight((i) => Math.min(i + 1, projectKeys.length - 1));
     keyMap["k"] = () => setSidebarHighlight((i) => Math.max(i - 1, 0));
     keyMap["Enter"] = () => selectProjectByIndex(sidebarHighlight);
     keyMap["Escape"] = () => setSidebarFocused(false);

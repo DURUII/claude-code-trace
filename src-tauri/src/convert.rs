@@ -541,7 +541,7 @@ mod tests {
 
     #[test]
     fn subagent_prompt_is_propagated_from_process() {
-        use crate::parser::chunk::{Chunk, ChunkType, DisplayItem, DisplayItemType};
+        use crate::parser::chunk::{DisplayItem, DisplayItemType};
         use crate::parser::subagent::SubagentProcess;
 
         let tool_id = "toolu_test123".to_string();

@@ -1319,13 +1319,25 @@ body {
   opacity: 0.85;
 }
 
-.detail-item__prompt-fold > summary {
+.detail-item__prompt-preview {
+  padding: 2px 8px 2px 24px;
+  font-size: 11px;
+  color: var(--text-muted);
+  opacity: 0.5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   cursor: pointer;
-  list-style: disclosure-closed;
 }
 
-.detail-item__prompt-fold[open] > summary {
-  list-style: disclosure-open;
+.detail-item__prompt-preview:hover {
+  opacity: 0.8;
+}
+
+.detail-item__prompt-preview--expanded {
+  opacity: 0.7;
+  border-top: 1px solid var(--border);
+  padding-top: 4px;
 }
 
 .detail-item__popout-btn {

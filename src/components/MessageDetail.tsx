@@ -140,8 +140,9 @@ export function MessageDetail({ message: msg, onBack }: MessageDetailProps) {
     setFocusedColumn(0);
     if (item.subagent_messages.length > 0) {
       openSubagentFromMain(item);
+    } else {
+      toggleItem(index);
     }
-    toggleItem(index);
   };
 
   const registerPanelNav = useCallback((depth: number, nav: ColumnNav | null) => {
@@ -282,6 +283,7 @@ export function MessageDetail({ message: msg, onBack }: MessageDetailProps) {
                       !!item.agent_id
                     }
                     onToggle={handleItemClick}
+                    onToggleExpand={toggleItem}
                     onSelect={setSelectedItem}
                   />
                 ))}
@@ -631,6 +633,7 @@ function AgentDetailColumn({
                     isExpanded={expandedItems.has(idx)}
                     isAgentActive={activeAgentId === di.agent_id && !!di.agent_id}
                     onToggle={handleItemClick}
+                    onToggleExpand={toggleItem}
                     onSelect={setSelectedItem}
                   />
                 ))}
@@ -823,6 +826,7 @@ interface DetailItemProps {
   isExpanded: boolean;
   isAgentActive?: boolean;
   onToggle: (index: number, item: DisplayItem) => void;
+  onToggleExpand: (index: number) => void;
   onSelect: (index: number) => void;
   ref?: React.Ref<HTMLDivElement>;
 }
@@ -835,6 +839,7 @@ function DetailItem({
   isExpanded,
   isAgentActive,
   onToggle,
+  onToggleExpand,
   onSelect,
 }: DetailItemProps) {
   const icon = getItemIcon(item);
@@ -853,6 +858,13 @@ function DetailItem({
           ? { background: `${teamClr}12`, borderLeftColor: teamClr }
           : undefined
       }
+      onDoubleClick={() => {
+        if (hasAgentMessages) {
+          onToggle(index, item);
+        } else if (item.subagent_prompt) {
+          onToggleExpand(index);
+        }
+      }}
     >
       <div
         className="detail-item__header"
@@ -882,6 +894,22 @@ function DetailItem({
             <span className="detail-item__tokens">{formatTokens(item.token_count)} tok</span>
           )}
           {item.subagent_ongoing && <span className="detail-item__ongoing-dot" />}
+          {(hasAgentMessages || item.subagent_prompt) && (
+            <button
+              className="message__detail-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (hasAgentMessages) {
+                  onSelect(index);
+                  onToggle(index, item);
+                } else {
+                  onToggleExpand(index);
+                }
+              }}
+            >
+              Detail {"\u2192"}
+            </button>
+          )}
           {isExpanded && (
             <button
               className="detail-item__popout-btn"
@@ -896,6 +924,17 @@ function DetailItem({
           )}
         </span>
       </div>
+      {item.subagent_prompt && (
+        <div
+          className={`detail-item__prompt-preview${isExpanded ? " detail-item__prompt-preview--expanded" : ""}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleExpand(index);
+          }}
+        >
+          {firstLine(item.subagent_prompt)}
+        </div>
+      )}
       {isExpanded && <DetailItemBody item={item} />}
       {popout && (
         <PopoutModal
@@ -981,10 +1020,10 @@ function DetailItemBody({ item }: { item: DisplayItem }) {
             </div>
           )}
           {item.subagent_prompt && (
-            <details className="detail-item__section detail-item__prompt-fold">
-              <summary className="detail-item__section-title">Prompt</summary>
+            <div className="detail-item__section">
+              <div className="detail-item__section-title">Prompt</div>
               <div className="detail-item__text">{item.subagent_prompt}</div>
-            </details>
+            </div>
           )}
           {item.text && (
             <div className="detail-item__section">

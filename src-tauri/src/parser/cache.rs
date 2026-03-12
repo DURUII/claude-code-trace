@@ -35,6 +35,11 @@ impl SessionCache {
                 let mut info = cached.info.clone();
                 // Re-check staleness for ongoing sessions at read time
                 info.is_ongoing = apply_staleness(info.is_ongoing, mod_time);
+                // Also check subagent files (orphan agents may be running
+                // while the parent session file hasn't changed).
+                if !info.is_ongoing {
+                    info.is_ongoing = crate::parser::subagent::has_recently_active_subagents(path);
+                }
                 return Some(info);
             }
         }

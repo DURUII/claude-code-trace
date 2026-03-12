@@ -39,6 +39,7 @@ pub fn tool_summary(name: &str, input: &Option<Value>) -> String {
         "TeamCreate" => summary_team_create(fields),
         "TeamDelete" => summary_team_delete(fields),
         "AskUserQuestion" => summary_ask_user(fields),
+        "Skill" => summary_skill(fields),
         "EnterPlanMode" | "ExitPlanMode" | "EnterWorktree" | "ExitWorktree" => name.to_string(),
         _ if name.starts_with("mcp__") => summary_mcp(name, fields),
         _ => summary_default(name, fields),
@@ -413,6 +414,18 @@ fn summary_mcp(name: &str, f: &serde_json::Map<String, Value>) -> String {
     }
 
     tool_part
+}
+
+fn summary_skill(f: &serde_json::Map<String, Value>) -> String {
+    let skill = get_str(f, "skill");
+    let args = get_str(f, "args");
+    if skill.is_empty() {
+        return "Skill".to_string();
+    }
+    if args.is_empty() {
+        return skill.to_string();
+    }
+    format!("{} {}", skill, truncate(args, 60))
 }
 
 fn summary_default(name: &str, f: &serde_json::Map<String, Value>) -> String {

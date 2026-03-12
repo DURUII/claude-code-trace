@@ -477,10 +477,6 @@ pub fn link_subagents(
         }
     }
 
-    if task_items.is_empty() {
-        return links.tool_id_to_color;
-    }
-
     let tool_id_to_task: HashMap<String, &DisplayItem> = task_items
         .iter()
         .map(|it| (it.tool_id.clone(), *it))
@@ -558,6 +554,52 @@ pub fn link_subagents(
         processes[idx].parent_task_id = task.tool_id.clone();
         processes[idx].description = task.subagent_desc.clone();
         processes[idx].subagent_type = task.subagent_type.clone();
+    }
+
+    // Phase 4: Nested enrichment — search all processes' chunks for task items
+    // to fill in description/type for processes that Phase 1 linked by tool_id
+    // but couldn't find in the parent session's chunks. This handles cases where
+    // a subagent spawns further subagents via Skill/Agent.
+    let needs_enrichment = processes
+        .iter()
+        .any(|p| !p.parent_task_id.is_empty() && p.description.is_empty());
+    if needs_enrichment {
+        // Collect task items from all processes' chunks.
+        let mut nested_task_items: Vec<DisplayItem> = Vec::new();
+        for proc in processes.iter() {
+            for c in &proc.chunks {
+                if c.chunk_type != ChunkType::AI {
+                    continue;
+                }
+                for item in &c.items {
+                    if item.item_type == DisplayItemType::Subagent
+                        || (item.item_type == DisplayItemType::ToolCall
+                            && linked_tool_ids.contains(item.tool_id.as_str()))
+                    {
+                        nested_task_items.push(item.clone());
+                    }
+                }
+            }
+        }
+        let nested_task_map: HashMap<String, &DisplayItem> = nested_task_items
+            .iter()
+            .map(|it| (it.tool_id.clone(), it))
+            .collect();
+        for proc in processes.iter_mut() {
+            if proc.description.is_empty() {
+                if let Some(item) = nested_task_map.get(&proc.parent_task_id) {
+                    // Use subagent_desc if available, otherwise fall back to tool_summary.
+                    proc.description = if !item.subagent_desc.is_empty() {
+                        item.subagent_desc.clone()
+                    } else {
+                        item.tool_summary.clone()
+                    };
+                    if proc.subagent_type.is_empty() {
+                        proc.subagent_type = item.subagent_type.clone();
+                    }
+                }
+            }
+        }
     }
 
     // Populate teammate color from toolUseResult data.
@@ -1085,6 +1127,169 @@ mod tests {
     #[test]
     fn first_user_text_returns_empty_for_empty_vec() {
         assert_eq!(first_user_text(&[]), "");
+    }
+
+    /// Create temp session files simulating nested Skill-spawned agents.
+    /// Layout: main session → orchestrator (orphan) → child agents (via Skill).
+    fn setup_nested_skill_session() -> (tempfile::TempDir, String) {
+        let dir = tempfile::tempdir().unwrap();
+        let session_id = "test-session";
+        let main_path = dir.path().join(format!("{session_id}.jsonl"));
+
+        // Main session: just a user message + assistant text (no Agent/Task calls).
+        std::fs::write(
+            &main_path,
+            concat!(
+                r#"{"type":"user","message":{"role":"user","content":"run pir"},"uuid":"u1","timestamp":"2026-03-12T21:20:00Z"}"#,
+                "\n",
+                r#"{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"Running PIR..."}],"stop_reason":"end_turn","usage":{"input_tokens":100,"output_tokens":50}},"requestId":"req1","uuid":"u2","timestamp":"2026-03-12T21:20:01Z"}"#,
+                "\n",
+            ),
+        )
+        .unwrap();
+
+        // Subagent directory
+        let sub_dir = dir.path().join(format!("{session_id}/subagents"));
+        std::fs::create_dir_all(&sub_dir).unwrap();
+
+        // Orchestrator subagent: has Skill tool_use + skill_progress
+        let orch_id = "agent-orch001";
+        let child_id = "agent-child01";
+        let skill_tool_id = "toolu_skill_pg";
+        std::fs::write(
+            sub_dir.join(format!("{orch_id}.jsonl")),
+            format!(
+                concat!(
+                    r#"{{"type":"user","agentId":"orch001","message":{{"role":"user","content":"Base directory for this skill: /skills/pir\n\n# Post Incident Record"}},"uuid":"o1","timestamp":"2026-03-12T21:21:00Z"}}"#,
+                    "\n",
+                    r#"{{"type":"assistant","agentId":"orch001","message":{{"role":"assistant","content":[{{"type":"tool_use","id":"{skill_tool_id}","name":"Skill","input":{{"skill":"pagerduty-oncall","args":"last 24h"}}}}],"stop_reason":"tool_use","usage":{{"input_tokens":200,"output_tokens":30}}}},"requestId":"req2","uuid":"o2","timestamp":"2026-03-12T21:21:01Z"}}"#,
+                    "\n",
+                    r#"{{"type":"progress","data":{{"type":"skill_progress","agentId":"{child_id_short}"}},"parentToolUseID":"{skill_tool_id}","uuid":"o3","timestamp":"2026-03-12T21:21:02Z"}}"#,
+                    "\n",
+                    r#"{{"type":"user","agentId":"orch001","message":{{"role":"user","content":[{{"type":"tool_result","tool_use_id":"{skill_tool_id}","content":"Skill completed."}}]}},"uuid":"o4","timestamp":"2026-03-12T21:22:00Z"}}"#,
+                    "\n",
+                ),
+                skill_tool_id = skill_tool_id,
+                child_id_short = "child01",
+            ),
+        )
+        .unwrap();
+        std::fs::write(
+            sub_dir.join(format!("{orch_id}.meta.json")),
+            r#"{"agentType":"general-purpose"}"#,
+        )
+        .unwrap();
+
+        // Child subagent (spawned by orchestrator's Skill call)
+        std::fs::write(
+            sub_dir.join(format!("{child_id}.jsonl")),
+            concat!(
+                r#"{"type":"user","agentId":"child01","message":{"role":"user","content":"Investigate PagerDuty incidents for the past 24 hours"},"uuid":"c1","timestamp":"2026-03-12T21:21:05Z"}"#,
+                "\n",
+                r#"{"type":"assistant","agentId":"child01","message":{"role":"assistant","content":[{"type":"tool_use","id":"toolu_bash1","name":"Bash","input":{"command":"pd incident list"}}],"stop_reason":"tool_use","usage":{"input_tokens":100,"output_tokens":20}},"requestId":"req3","uuid":"c2","timestamp":"2026-03-12T21:21:06Z"}"#,
+                "\n",
+                r#"{"type":"user","agentId":"child01","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_bash1","content":"No incidents found."}]},"uuid":"c3","timestamp":"2026-03-12T21:21:07Z"}"#,
+                "\n",
+                r#"{"type":"assistant","agentId":"child01","message":{"role":"assistant","content":[{"type":"text","text":"No PagerDuty incidents."}],"stop_reason":"end_turn","usage":{"input_tokens":150,"output_tokens":10}},"requestId":"req4","uuid":"c4","timestamp":"2026-03-12T21:21:08Z"}"#,
+                "\n",
+            ),
+        )
+        .unwrap();
+        std::fs::write(
+            sub_dir.join(format!("{child_id}.meta.json")),
+            r#"{"agentType":"general-purpose"}"#,
+        )
+        .unwrap();
+
+        (dir, main_path.to_string_lossy().to_string())
+    }
+
+    #[test]
+    fn nested_skill_agents_are_linked_not_orphan() {
+        let (_dir, main_path) = setup_nested_skill_session();
+
+        let (classified, _, _) =
+            crate::parser::session::read_session_incremental(&main_path, 0).unwrap();
+        let mut chunks = crate::parser::chunk::build_chunks(&classified);
+        let (mut procs, _color_map) = discover_and_link_all(&main_path, &chunks);
+
+        // Before orphan injection: orchestrator should be orphan, child should be linked.
+        let orch = procs.iter().find(|p| p.id == "orch001").unwrap();
+        assert!(
+            orch.parent_task_id.is_empty(),
+            "orchestrator should be orphan (no parent in main session)"
+        );
+
+        let child = procs.iter().find(|p| p.id == "child01").unwrap();
+        assert_eq!(
+            child.parent_task_id, "toolu_skill_pg",
+            "child should link to the orchestrator's Skill tool_use_id"
+        );
+        // Phase 4 should have enriched the description from the Skill tool_summary.
+        assert!(
+            !child.description.is_empty(),
+            "child description should be enriched from the Skill tool call"
+        );
+
+        // After orphan injection: only orchestrator becomes orphan item.
+        inject_orphan_subagents(&mut chunks, &mut procs);
+        let orphan_items: Vec<_> = chunks
+            .iter()
+            .flat_map(|c| &c.items)
+            .filter(|it| it.is_orphan)
+            .collect();
+        assert_eq!(
+            orphan_items.len(),
+            1,
+            "only the orchestrator should be an orphan item"
+        );
+        assert_eq!(orphan_items[0].subagent_type, "general-purpose");
+    }
+
+    #[test]
+    fn nested_skill_agents_appear_in_orchestrator_messages() {
+        let (_dir, main_path) = setup_nested_skill_session();
+
+        let (classified, _, _) =
+            crate::parser::session::read_session_incremental(&main_path, 0).unwrap();
+        let mut chunks = crate::parser::chunk::build_chunks(&classified);
+        let (mut procs, color_map) = discover_and_link_all(&main_path, &chunks);
+        inject_orphan_subagents(&mut chunks, &mut procs);
+
+        let messages = crate::convert::chunks_to_messages(&chunks, &procs, &color_map);
+
+        // Find the orchestrator orphan item in the messages.
+        let orch_item = messages
+            .iter()
+            .flat_map(|m| &m.items)
+            .find(|it| it.agent_id == "orch001")
+            .expect("orchestrator item should exist");
+
+        assert!(
+            !orch_item.subagent_messages.is_empty(),
+            "orchestrator should have subagent_messages"
+        );
+
+        // Inside the orchestrator's messages, the Skill ToolCall should link to the child.
+        let skill_item = orch_item
+            .subagent_messages
+            .iter()
+            .flat_map(|m| &m.items)
+            .find(|it| it.tool_name == "Skill");
+        assert!(
+            skill_item.is_some(),
+            "Skill tool call should exist in orchestrator messages"
+        );
+
+        let skill_item = skill_item.unwrap();
+        assert_eq!(
+            skill_item.agent_id, "child01",
+            "Skill item should be linked to child agent"
+        );
+        assert!(
+            !skill_item.subagent_messages.is_empty(),
+            "Skill item should have child's subagent_messages"
+        );
     }
 
     #[test]

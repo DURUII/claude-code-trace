@@ -53,10 +53,10 @@ export function MessageList({
     [onOpenDetail],
   );
 
-  // Reverse order: newest messages first
-  const reversed = useMemo(() => {
+  // Chronological order: oldest messages first
+  const ordered = useMemo(() => {
     const indices: number[] = [];
-    for (let i = messages.length - 1; i >= 0; i--) {
+    for (let i = 0; i < messages.length; i++) {
       indices.push(i);
     }
     return indices;
@@ -72,7 +72,7 @@ export function MessageList({
 
   return (
     <div className="message-list" ref={listRef}>
-      {reversed.map((i) => {
+      {ordered.map((i) => {
         const msg = messages[i];
         if (msg.role === "compact") {
           return <CompactSeparator key={i} content={msg.content} />;

@@ -447,9 +447,9 @@ function AgentListColumn({
     return () => onRegisterNav(null);
   }, [onRegisterNav]);
 
-  const reversed = useMemo(() => {
+  const ordered = useMemo(() => {
     const indices: number[] = [];
-    for (let i = messages.length - 1; i >= 0; i--) indices.push(i);
+    for (let i = 0; i < messages.length; i++) indices.push(i);
     return indices;
   }, [messages.length]);
 
@@ -467,7 +467,7 @@ function AgentListColumn({
       <AgentPanelHeader item={item} panelColor={panelColor} onClose={onClose} />
       <div className="agent-panel__content">
         <div className="agent-panel__list" ref={listRef}>
-          {reversed.map((i) => {
+          {ordered.map((i) => {
             const msg = messages[i];
             if (msg.role === "compact") {
               return (

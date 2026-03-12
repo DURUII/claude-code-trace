@@ -771,8 +771,8 @@ body {
 
 .picker__session-time {
   margin-left: auto;
-  color: var(--text-muted);
-  font-size: 10px;
+  color: var(--text-secondary);
+  font-size: 11px;
   flex-shrink: 0;
 }
 
@@ -889,7 +889,7 @@ body {
 
 .message__timestamp {
   font-size: 11px;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   margin-left: auto;
 }
 
@@ -1041,7 +1041,7 @@ body {
 
 .message-detail__meta {
   font-size: 11px;
-  color: var(--text-dim);
+  color: var(--text-secondary);
   margin-left: auto;
   white-space: nowrap;
   overflow: hidden;

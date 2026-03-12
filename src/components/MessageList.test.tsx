@@ -49,16 +49,16 @@ describe("MessageList", () => {
     expect(screen.getByText("No messages loaded")).toBeInTheDocument();
   });
 
-  it("renders messages in reverse order (newest first)", () => {
+  it("renders messages in chronological order (oldest first)", () => {
     const messages = [
       makeMessage({ content: "First message", role: "user" }),
       makeMessage({ content: "Second message", role: "claude", model: "claude-sonnet-4-20250514" }),
     ];
     const { container } = render(<MessageList {...defaultProps({ messages })} />);
     const messageEls = container.querySelectorAll(".message");
-    // Second message (index 1) should appear first in the DOM
-    expect(messageEls[0]).toHaveTextContent(/Second message/);
-    expect(messageEls[1]).toHaveTextContent(/First message/);
+    // First message (index 0) should appear first in the DOM
+    expect(messageEls[0]).toHaveTextContent(/First message/);
+    expect(messageEls[1]).toHaveTextContent(/Second message/);
   });
 
   it("shows compact separator for compact role", () => {

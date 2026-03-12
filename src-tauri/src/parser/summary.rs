@@ -418,14 +418,10 @@ fn summary_mcp(name: &str, f: &serde_json::Map<String, Value>) -> String {
 
 fn summary_skill(f: &serde_json::Map<String, Value>) -> String {
     let skill = get_str(f, "skill");
-    let args = get_str(f, "args");
     if skill.is_empty() {
         return "Skill".to_string();
     }
-    if args.is_empty() {
-        return skill.to_string();
-    }
-    format!("{} {}", skill, truncate(args, 60))
+    skill.to_string()
 }
 
 fn summary_default(name: &str, f: &serde_json::Map<String, Value>) -> String {

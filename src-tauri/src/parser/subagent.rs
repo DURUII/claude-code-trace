@@ -31,12 +31,27 @@ struct ModelPricing {
 fn pricing_for_model(model: &str) -> ModelPricing {
     let m = model.to_lowercase();
     if m.contains("opus") {
-        ModelPricing { input: 5.0, output: 25.0, cache_read: 0.5, cache_write: 6.25 }
+        ModelPricing {
+            input: 5.0,
+            output: 25.0,
+            cache_read: 0.5,
+            cache_write: 6.25,
+        }
     } else if m.contains("haiku") {
-        ModelPricing { input: 1.0, output: 5.0, cache_read: 0.1, cache_write: 1.25 }
+        ModelPricing {
+            input: 1.0,
+            output: 5.0,
+            cache_read: 0.1,
+            cache_write: 1.25,
+        }
     } else {
         // Default to sonnet
-        ModelPricing { input: 3.0, output: 15.0, cache_read: 0.3, cache_write: 3.75 }
+        ModelPricing {
+            input: 3.0,
+            output: 15.0,
+            cache_read: 0.3,
+            cache_write: 3.75,
+        }
     }
 }
 
@@ -222,7 +237,7 @@ fn is_warmup_agent(path: &str) -> bool {
 }
 
 fn read_subagent_session(path: &str) -> Result<(Vec<Chunk>, String, String), String> {
-    use super::patterns::{TEAMMATE_SUMMARY_RE, TEAMMATE_COLOR_RE};
+    use super::patterns::{TEAMMATE_COLOR_RE, TEAMMATE_SUMMARY_RE};
 
     let f = fs::File::open(path).map_err(|e| format!("opening {}: {}", path, e))?;
     let reader = BufReader::new(f);
@@ -317,7 +332,11 @@ pub fn link_subagents(
     }
 
     // Collect tool IDs that have known agent links (for ToolCall items like Skill).
-    let linked_tool_ids: HashSet<&str> = links.agent_to_tool_id.values().map(|s| s.as_str()).collect();
+    let linked_tool_ids: HashSet<&str> = links
+        .agent_to_tool_id
+        .values()
+        .map(|s| s.as_str())
+        .collect();
 
     // Collect all Subagent DisplayItems + ToolCall items that have agent links.
     let mut task_items: Vec<&DisplayItem> = Vec::new();
@@ -328,7 +347,9 @@ pub fn link_subagents(
         for item in &c.items {
             if item.item_type == DisplayItemType::Subagent {
                 task_items.push(item);
-            } else if item.item_type == DisplayItemType::ToolCall && linked_tool_ids.contains(item.tool_id.as_str()) {
+            } else if item.item_type == DisplayItemType::ToolCall
+                && linked_tool_ids.contains(item.tool_id.as_str())
+            {
                 task_items.push(item);
             }
         }
@@ -380,7 +401,9 @@ pub fn link_subagents(
             if proc.team_summary.is_empty() || proc.team_summary != item.subagent_desc {
                 continue;
             }
-            if best_idx.is_none() || processes[i].start_time < processes[best_idx.unwrap()].start_time {
+            if best_idx.is_none()
+                || processes[i].start_time < processes[best_idx.unwrap()].start_time
+            {
                 best_idx = Some(i);
             }
         }
@@ -546,7 +569,10 @@ fn scan_skill_progress_links(file_path: &str) -> HashMap<String, String> {
             }
         } else if line.contains("skill_progress") && !last_skill_tool_id.is_empty() {
             if let Ok(v) = serde_json::from_str::<Value>(&line) {
-                let data_type = v.pointer("/data/type").and_then(|v| v.as_str()).unwrap_or("");
+                let data_type = v
+                    .pointer("/data/type")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("");
                 if data_type == "skill_progress" {
                     if let Some(agent_id) = v.pointer("/data/agentId").and_then(|v| v.as_str()) {
                         if !agent_id.is_empty() && !result.contains_key(agent_id) {
@@ -681,8 +707,16 @@ fn read_team_session_meta(path: &str) -> (String, String) {
             Ok(v) => v,
             Err(_) => continue,
         };
-        let team_name = raw.get("teamName").and_then(|v| v.as_str()).unwrap_or("").to_string();
-        let agent_name = raw.get("agentName").and_then(|v| v.as_str()).unwrap_or("").to_string();
+        let team_name = raw
+            .get("teamName")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+        let agent_name = raw
+            .get("agentName")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
         return (team_name, agent_name);
     }
     (String::new(), String::new())
@@ -713,9 +747,7 @@ fn extract_team_specs(chunks: &[Chunk]) -> Vec<(String, String)> {
 
 /// Resolve the subagents directory for a session file path.
 pub fn subagents_dir(session_path: &str) -> std::path::PathBuf {
-    let dir = Path::new(session_path)
-        .parent()
-        .unwrap_or(Path::new(""));
+    let dir = Path::new(session_path).parent().unwrap_or(Path::new(""));
     let base = Path::new(session_path)
         .file_stem()
         .and_then(|s| s.to_str())
@@ -798,15 +830,30 @@ pub fn scan_subagent_tokens_into(
                 Some(u) => u,
                 None => continue,
             };
-            let inp = usage.get("input_tokens").and_then(|v| v.as_i64()).unwrap_or(0);
-            let out = usage.get("output_tokens").and_then(|v| v.as_i64()).unwrap_or(0);
-            let cr = usage.get("cache_read_input_tokens").and_then(|v| v.as_i64()).unwrap_or(0);
-            let cc = usage.get("cache_creation_input_tokens").and_then(|v| v.as_i64()).unwrap_or(0);
+            let inp = usage
+                .get("input_tokens")
+                .and_then(|v| v.as_i64())
+                .unwrap_or(0);
+            let out = usage
+                .get("output_tokens")
+                .and_then(|v| v.as_i64())
+                .unwrap_or(0);
+            let cr = usage
+                .get("cache_read_input_tokens")
+                .and_then(|v| v.as_i64())
+                .unwrap_or(0);
+            let cc = usage
+                .get("cache_creation_input_tokens")
+                .and_then(|v| v.as_i64())
+                .unwrap_or(0);
             if inp + out + cr + cc == 0 {
                 continue;
             }
             let snap = TokenSnapshot {
-                input: inp, output: out, cache_read: cr, cache_create: cc,
+                input: inp,
+                output: out,
+                cache_read: cr,
+                cache_create: cc,
                 model: model.to_string(),
             };
             let req_id = raw.get("requestId").and_then(|v| v.as_str()).unwrap_or("");

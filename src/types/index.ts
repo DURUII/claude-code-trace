@@ -46,7 +46,6 @@ export interface DisplayItem {
   subagent_messages: DisplayMessage[];
 }
 
-
 export interface LastOutput {
   output_type: "Text" | "ToolResult" | "ToolCalls";
   text: string;

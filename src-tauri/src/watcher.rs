@@ -189,7 +189,6 @@ pub fn start_session_watcher(
     WatcherHandle { stop_tx }
 }
 
-
 /// Serializable picker refresh event.
 #[derive(Clone, serde::Serialize)]
 struct PickerRefreshPayload {
@@ -197,10 +196,7 @@ struct PickerRefreshPayload {
 }
 
 /// Start watching project directories for new/changed sessions.
-pub fn start_picker_watcher(
-    project_dirs: Vec<String>,
-    app: AppHandle,
-) -> WatcherHandle {
+pub fn start_picker_watcher(project_dirs: Vec<String>, app: AppHandle) -> WatcherHandle {
     let (stop_tx, mut stop_rx) = mpsc::channel::<()>(1);
     let (signal_tx, mut signal_rx) = mpsc::channel::<()>(4);
 

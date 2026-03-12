@@ -70,3 +70,95 @@ pub fn group_sessions_by_date(sessions: &[SessionInfo]) -> Vec<DateGroup> {
     }
     groups
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::{Duration, Utc};
+
+    fn make_session(mod_time: DateTime<Utc>) -> SessionInfo {
+        SessionInfo {
+            session_id: format!("session-{}", mod_time.timestamp()),
+            path: "/tmp/test.jsonl".to_string(),
+            first_message: "test".to_string(),
+            mod_time,
+            turn_count: 1,
+            model: "claude-sonnet-4-20250514".to_string(),
+            total_tokens: 100,
+            input_tokens: 50,
+            output_tokens: 50,
+            cache_read_tokens: 0,
+            cache_creation_tokens: 0,
+            cost_usd: 0.01,
+            duration_ms: 1000,
+            cwd: "/tmp".to_string(),
+            git_branch: "main".to_string(),
+            permission_mode: "default".to_string(),
+            is_ongoing: false,
+        }
+    }
+
+    #[test]
+    fn empty_sessions_returns_empty_groups() {
+        let groups = group_sessions_by_date(&[]);
+        assert!(groups.is_empty());
+    }
+
+    #[test]
+    fn session_from_today_goes_in_today() {
+        let now = Utc::now();
+        let sessions = vec![make_session(now)];
+        let groups = group_sessions_by_date(&sessions);
+        assert_eq!(groups.len(), 1);
+        assert_eq!(groups[0].category, DateCategory::Today);
+        assert_eq!(groups[0].sessions.len(), 1);
+    }
+
+    #[test]
+    fn session_from_yesterday_goes_in_yesterday() {
+        // Use a time well into yesterday (noon yesterday in local time)
+        let yesterday = Utc::now() - Duration::hours(30);
+        let sessions = vec![make_session(yesterday)];
+        let groups = group_sessions_by_date(&sessions);
+        assert!(!groups.is_empty());
+        // Should be Yesterday or ThisWeek depending on time, but definitely not Today
+        assert_ne!(groups[0].category, DateCategory::Today);
+    }
+
+    #[test]
+    fn old_session_goes_in_older() {
+        let old = Utc::now() - Duration::days(60);
+        let sessions = vec![make_session(old)];
+        let groups = group_sessions_by_date(&sessions);
+        assert_eq!(groups.len(), 1);
+        assert_eq!(groups[0].category, DateCategory::Older);
+    }
+
+    #[test]
+    fn groups_are_in_chronological_order() {
+        let now = Utc::now();
+        let old = now - Duration::days(60);
+        let sessions = vec![make_session(old), make_session(now)];
+        let groups = group_sessions_by_date(&sessions);
+        assert!(groups.len() >= 2);
+        // Today should come before Older
+        let today_pos = groups
+            .iter()
+            .position(|g| g.category == DateCategory::Today);
+        let older_pos = groups
+            .iter()
+            .position(|g| g.category == DateCategory::Older);
+        assert!(today_pos.unwrap() < older_pos.unwrap());
+    }
+
+    #[test]
+    fn multiple_sessions_same_category_grouped() {
+        let now = Utc::now();
+        let also_now = now - Duration::minutes(5);
+        let sessions = vec![make_session(now), make_session(also_now)];
+        let groups = group_sessions_by_date(&sessions);
+        assert_eq!(groups.len(), 1);
+        assert_eq!(groups[0].category, DateCategory::Today);
+        assert_eq!(groups[0].sessions.len(), 2);
+    }
+}

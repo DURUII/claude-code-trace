@@ -119,7 +119,12 @@ pub const SYSTEM_OUTPUT_TAGS: &[&str] = &[
     TASK_NOTIFICATION_TAG,
 ];
 
-const NOISE_ENTRY_TYPES: &[&str] = &["system", "file-history-snapshot", "queue-operation", "progress"];
+const NOISE_ENTRY_TYPES: &[&str] = &[
+    "system",
+    "file-history-snapshot",
+    "queue-operation",
+    "progress",
+];
 
 const HARD_NOISE_TAGS: &[&str] = &["<local-command-caveat>", "<system-reminder>"];
 
@@ -194,7 +199,9 @@ pub fn classify(e: Entry) -> Option<ClassifiedMsg> {
     // System message: user entry starting with command output tag.
     if e.entry_type == "user" {
         let trimmed = content_str.trim();
-        if trimmed.starts_with(LOCAL_COMMAND_STDOUT_TAG) || trimmed.starts_with(LOCAL_COMMAND_STDERR_TAG) {
+        if trimmed.starts_with(LOCAL_COMMAND_STDOUT_TAG)
+            || trimmed.starts_with(LOCAL_COMMAND_STDERR_TAG)
+        {
             return Some(ClassifiedMsg::System(SystemMsg {
                 timestamp: ts,
                 output: extract_command_output(&content_str),
@@ -243,7 +250,9 @@ pub fn classify(e: Entry) -> Option<ClassifiedMsg> {
     // User message.
     if e.entry_type == "user" && !e.is_meta {
         let trimmed = content_str.trim();
-        let excluded = SYSTEM_OUTPUT_TAGS.iter().any(|tag| trimmed.starts_with(tag));
+        let excluded = SYSTEM_OUTPUT_TAGS
+            .iter()
+            .any(|tag| trimmed.starts_with(tag));
         if !excluded && has_user_content(&e.message.content, &content_str) {
             return Some(ClassifiedMsg::User(UserMsg {
                 timestamp: ts,
@@ -362,8 +371,15 @@ fn extract_tool_search_matches(raw: &Option<Value>) -> Option<Vec<String>> {
     let val = raw.as_ref()?;
     let matches = val.get("matches")?;
     let arr = matches.as_array()?;
-    let names: Vec<String> = arr.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect();
-    if names.is_empty() { None } else { Some(names) }
+    let names: Vec<String> = arr
+        .iter()
+        .filter_map(|v| v.as_str().map(|s| s.to_string()))
+        .collect();
+    if names.is_empty() {
+        None
+    } else {
+        Some(names)
+    }
 }
 
 fn extract_assistant_details(content: &Option<Value>) -> (usize, Vec<ToolCall>, Vec<ContentBlock>) {
@@ -383,22 +399,41 @@ fn extract_assistant_details(content: &Option<Value>) -> (usize, Vec<ToolCall>, 
                 thinking += 1;
                 content_blocks.push(ContentBlock {
                     block_type: "thinking".to_string(),
-                    text: b.get("thinking").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                    text: b
+                        .get("thinking")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .to_string(),
                     ..Default::default()
                 });
             }
             "text" => {
                 content_blocks.push(ContentBlock {
                     block_type: "text".to_string(),
-                    text: b.get("text").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                    text: b
+                        .get("text")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .to_string(),
                     ..Default::default()
                 });
             }
             "tool_use" => {
-                let id = b.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string();
-                let name = b.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                let id = b
+                    .get("id")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string();
+                let name = b
+                    .get("name")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string();
                 if !id.is_empty() && !name.is_empty() {
-                    calls.push(ToolCall { id: id.clone(), name: name.clone() });
+                    calls.push(ToolCall {
+                        id: id.clone(),
+                        name: name.clone(),
+                    });
                 }
                 content_blocks.push(ContentBlock {
                     block_type: "tool_use".to_string(),
@@ -411,7 +446,11 @@ fn extract_assistant_details(content: &Option<Value>) -> (usize, Vec<ToolCall>, 
             _ => {
                 content_blocks.push(ContentBlock {
                     block_type: bt.to_string(),
-                    text: b.get("text").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                    text: b
+                        .get("text")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .to_string(),
                     ..Default::default()
                 });
             }
@@ -433,9 +472,9 @@ fn extract_meta_blocks(content: &Option<Value>, text_fallback: &str) -> Vec<Cont
         }
     };
 
-    let has_tool_result = blocks.iter().any(|b| {
-        b.get("type").and_then(|v| v.as_str()) == Some("tool_result")
-    });
+    let has_tool_result = blocks
+        .iter()
+        .any(|b| b.get("type").and_then(|v| v.as_str()) == Some("tool_result"));
 
     if !has_tool_result {
         return vec![ContentBlock {
@@ -452,7 +491,11 @@ fn extract_meta_blocks(content: &Option<Value>, text_fallback: &str) -> Vec<Cont
             if bt != "tool_result" {
                 return None;
             }
-            let tool_id = b.get("tool_use_id").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let tool_id = b
+                .get("tool_use_id")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
             let content = stringify_content(&b.get("content").cloned());
             let is_error = b.get("is_error").and_then(|v| v.as_bool()).unwrap_or(false);
             Some(ContentBlock {
@@ -464,4 +507,209 @@ fn extract_meta_blocks(content: &Option<Value>, text_fallback: &str) -> Vec<Cont
             })
         })
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::super::entry::{Entry, EntryMessage};
+    use super::*;
+    use serde_json::json;
+
+    fn make_entry(entry_type: &str, content: Option<Value>) -> Entry {
+        Entry {
+            entry_type: entry_type.to_string(),
+            uuid: "test-uuid".to_string(),
+            timestamp: "2025-01-15T10:30:00Z".to_string(),
+            message: EntryMessage {
+                content,
+                ..Default::default()
+            },
+            ..Default::default()
+        }
+    }
+
+    // --- parse_timestamp tests ---
+
+    #[test]
+    fn parse_timestamp_valid_rfc3339() {
+        let ts = parse_timestamp("2025-01-15T10:30:00Z");
+        assert_eq!(
+            ts.to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
+            "2025-01-15T10:30:00Z"
+        );
+    }
+
+    #[test]
+    fn parse_timestamp_valid_naive() {
+        let ts = parse_timestamp("2025-01-15T10:30:00.000");
+        assert_eq!(ts.format("%Y-%m-%d").to_string(), "2025-01-15");
+    }
+
+    #[test]
+    fn parse_timestamp_invalid_returns_recent() {
+        let before = chrono::Utc::now();
+        let ts = parse_timestamp("not-a-date");
+        let after = chrono::Utc::now();
+        // Should return approximately now (fallback)
+        assert!(ts >= before && ts <= after);
+    }
+
+    // --- classify tests ---
+
+    #[test]
+    fn classify_returns_none_for_sidechain() {
+        let mut e = make_entry("user", Some(json!("hello")));
+        e.is_sidechain = true;
+        assert!(classify(e).is_none());
+    }
+
+    #[test]
+    fn classify_returns_none_for_noise_entry_types() {
+        for noise_type in &[
+            "system",
+            "file-history-snapshot",
+            "queue-operation",
+            "progress",
+        ] {
+            let e = make_entry(noise_type, Some(json!("content")));
+            assert!(
+                classify(e).is_none(),
+                "Expected None for entry_type={}",
+                noise_type
+            );
+        }
+    }
+
+    #[test]
+    fn classify_returns_compact_for_summary() {
+        let mut e = make_entry("summary", None);
+        e.summary = "Session summary text".to_string();
+        match classify(e) {
+            Some(ClassifiedMsg::Compact(c)) => {
+                assert_eq!(c.text, "Session summary text");
+            }
+            other => panic!("Expected Compact, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn classify_returns_none_for_synthetic_assistant() {
+        let mut e = make_entry("assistant", Some(json!([{"type": "text", "text": "hi"}])));
+        e.message.model = "<synthetic>".to_string();
+        assert!(classify(e).is_none());
+    }
+
+    #[test]
+    fn classify_returns_user_msg_for_regular_user() {
+        let e = make_entry("user", Some(json!("Hello Claude")));
+        match classify(e) {
+            Some(ClassifiedMsg::User(u)) => {
+                assert!(u.text.contains("Hello Claude"));
+            }
+            other => panic!("Expected User, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn classify_returns_ai_msg_for_assistant_with_tool_calls_and_thinking() {
+        let content = json!([
+            {"type": "thinking", "thinking": "Let me think..."},
+            {"type": "text", "text": "Here is my response"},
+            {"type": "tool_use", "id": "tool1", "name": "Bash", "input": {"command": "ls"}}
+        ]);
+        let mut e = make_entry("assistant", Some(content));
+        e.message.model = "claude-sonnet-4-20250514".to_string();
+        e.message.stop_reason = Some("tool_use".to_string());
+        match classify(e) {
+            Some(ClassifiedMsg::AI(ai)) => {
+                assert_eq!(ai.thinking_count, 1);
+                assert_eq!(ai.tool_calls.len(), 1);
+                assert_eq!(ai.tool_calls[0].name, "Bash");
+                assert_eq!(ai.model, "claude-sonnet-4-20250514");
+                assert_eq!(ai.stop_reason, "tool_use");
+            }
+            other => panic!("Expected AI, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn classify_returns_system_msg_for_stdout_tag() {
+        let content = format!("<local-command-stdout>file1.txt\nfile2.txt</local-command-stdout>");
+        let e = make_entry("user", Some(json!(content)));
+        match classify(e) {
+            Some(ClassifiedMsg::System(_)) => {}
+            other => panic!("Expected System, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn classify_returns_system_msg_for_bash_stdout() {
+        let content = "<bash-stdout>output here</bash-stdout>";
+        let e = make_entry("user", Some(json!(content)));
+        match classify(e) {
+            Some(ClassifiedMsg::System(s)) => {
+                assert!(!s.output.is_empty());
+            }
+            other => panic!("Expected System, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn classify_returns_system_msg_for_task_notification() {
+        let content = "<task-notification><summary>Task done</summary><status>completed</status></task-notification>";
+        let e = make_entry("user", Some(json!(content)));
+        match classify(e) {
+            Some(ClassifiedMsg::System(s)) => {
+                assert!(!s.is_error);
+            }
+            other => panic!("Expected System, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn classify_returns_teammate_for_teammate_message() {
+        let content = r##"<teammate-message teammate_id="worker1" color="#ff0000">Hello from worker</teammate-message>"##;
+        let e = make_entry("user", Some(json!(content)));
+        match classify(e) {
+            Some(ClassifiedMsg::Teammate(t)) => {
+                assert_eq!(t.teammate_id, "worker1");
+                assert_eq!(t.color, "#ff0000");
+                assert!(t.text.contains("Hello from worker"));
+            }
+            other => panic!("Expected Teammate, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn classify_returns_none_for_teammate_protocol_messages() {
+        let content = r##"<teammate-message teammate_id="worker1" color="#ff0000">{"type": "idle_notification"}</teammate-message>"##;
+        let e = make_entry("user", Some(json!(content)));
+        assert!(classify(e).is_none());
+    }
+
+    #[test]
+    fn classify_returns_none_for_user_noise_system_reminder_only() {
+        let content = "<system-reminder>some reminder</system-reminder>";
+        let e = make_entry("user", Some(json!(content)));
+        assert!(classify(e).is_none());
+    }
+
+    #[test]
+    fn classify_returns_none_for_empty_stdout() {
+        let content = "<local-command-stdout></local-command-stdout>";
+        let e = make_entry("user", Some(json!(content)));
+        assert!(classify(e).is_none());
+    }
+
+    #[test]
+    fn classify_task_notification_killed_is_error() {
+        let content = "<task-notification><summary>Task failed</summary><status>killed</status></task-notification>";
+        let e = make_entry("user", Some(json!(content)));
+        match classify(e) {
+            Some(ClassifiedMsg::System(s)) => {
+                assert!(s.is_error);
+            }
+            other => panic!("Expected System with is_error, got {:?}", other),
+        }
+    }
 }

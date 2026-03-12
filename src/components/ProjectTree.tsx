@@ -18,7 +18,14 @@ interface ProjectNode {
   hasOngoing: boolean;
 }
 
-export function ProjectTree({ sessions, selectedProject, onSelectProject, onRefresh, refreshing, style }: ProjectTreeProps) {
+export function ProjectTree({
+  sessions,
+  selectedProject,
+  onSelectProject,
+  onRefresh,
+  refreshing,
+  style,
+}: ProjectTreeProps) {
   const projects = useMemo(() => {
     const map = new Map<string, { name: string; count: number; ongoing: boolean }>();
 
@@ -57,7 +64,10 @@ export function ProjectTree({ sessions, selectedProject, onSelectProject, onRefr
         <span>Projects</span>
         <button
           className={`project-tree__refresh${refreshing ? " project-tree__refresh--spinning" : ""}`}
-          onClick={(e) => { e.stopPropagation(); onRefresh(); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onRefresh();
+          }}
           title="Refresh all projects"
         >
           {"\u21BB"}

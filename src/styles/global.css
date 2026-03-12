@@ -228,8 +228,12 @@ body {
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .project-tree__list {
@@ -247,6 +251,7 @@ body {
   font-size: 12px;
   color: var(--fg);
   border-left: 2px solid transparent;
+  min-width: 0;
 }
 
 .project-tree__item:hover {
@@ -303,11 +308,16 @@ body {
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
   min-height: 36px;
+  min-width: 0;
 }
 
 .info-bar__project {
   font-weight: 600;
   color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .info-bar__session-id {
@@ -315,6 +325,10 @@ body {
   font-size: 11px;
   font-family: var(--font-mono, monospace);
   opacity: 0.6;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .info-bar__branch {
@@ -360,6 +374,7 @@ body {
   margin-left: auto;
   font-size: 11px;
   color: var(--text-dim);
+  flex-shrink: 0;
 }
 
 .info-bar__context-bar {
@@ -562,6 +577,7 @@ body {
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -687,10 +703,12 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
 }
 
 .picker__session-preview {
   flex: 1;
+  min-width: 0;
   color: var(--text-primary);
   font-size: 12px;
   white-space: nowrap;
@@ -727,6 +745,7 @@ body {
   margin-top: 2px;
   font-size: 11px;
   color: var(--text-dim);
+  min-width: 0;
 }
 
 .picker__session-model {
@@ -827,6 +846,7 @@ body {
   align-items: center;
   gap: 8px;
   margin-bottom: 4px;
+  min-width: 0;
 }
 
 .message__role-icon {
@@ -910,10 +930,12 @@ body {
 .message__stats {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 10px;
   margin-top: 4px;
   font-size: 11px;
   color: var(--text-dim);
+  min-width: 0;
 }
 
 .message__stat {
@@ -982,6 +1004,7 @@ body {
   background: var(--bg-surface);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
+  min-width: 0;
 }
 
 .message-detail__back {
@@ -1125,6 +1148,7 @@ body {
   cursor: pointer;
   background: var(--bg-surface);
   transition: background 0.1s;
+  min-width: 0;
 }
 
 .detail-item__header:hover {
@@ -1320,6 +1344,7 @@ body {
   background: var(--bg-surface);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
+  min-width: 0;
 }
 
 .popout-modal__icon {
@@ -1827,7 +1852,6 @@ body {
   border-left: 2px solid #63b3ed;
 }
 
-
 /* Agent panel — reuses .message classes, tinted background */
 .agent-panel {
   flex: 1 1 55%;
@@ -1848,6 +1872,7 @@ body {
   background: rgba(99, 179, 237, 0.06);
   flex-shrink: 0;
   font-size: 12px;
+  min-width: 0;
 }
 
 .agent-panel__close {
@@ -1873,7 +1898,6 @@ body {
   font-weight: 600;
   color: #63b3ed;
 }
-
 
 .agent-panel__id {
   font-family: var(--font-mono);
@@ -1908,6 +1932,7 @@ body {
 .agent-panel__content {
   flex: 1;
   min-height: 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1919,6 +1944,7 @@ body {
   flex: 1;
   overflow-y: auto;
   min-height: 0;
+  min-width: 0;
 }
 
 /* Messages inside agent panel get a slightly lighter background for readability */
@@ -1929,7 +1955,6 @@ body {
 .agent-panel .message--selected {
   background: rgba(99, 179, 237, 0.08);
 }
-
 
 /* Agent detail (nested detail inside panel) — split for deeper nesting */
 .agent-detail {

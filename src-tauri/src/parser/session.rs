@@ -58,10 +58,15 @@ pub fn read_session(path: &str) -> Result<Vec<Chunk>, String> {
 
 /// Read new lines from a session file starting at the given byte offset.
 /// Returns (new classified messages, updated offset, bytes read).
-pub fn read_session_incremental(path: &str, offset: u64) -> Result<(Vec<ClassifiedMsg>, u64, u64), String> {
+pub fn read_session_incremental(
+    path: &str,
+    offset: u64,
+) -> Result<(Vec<ClassifiedMsg>, u64, u64), String> {
     let f = fs::File::open(path).map_err(|e| format!("opening {}: {}", path, e))?;
     let mut reader = BufReader::new(f);
-    reader.seek(SeekFrom::Start(offset)).map_err(|e| format!("seeking: {}", e))?;
+    reader
+        .seek(SeekFrom::Start(offset))
+        .map_err(|e| format!("seeking: {}", e))?;
 
     let mut msgs = Vec::new();
     let mut bytes_read: u64 = 0;
@@ -69,7 +74,9 @@ pub fn read_session_incremental(path: &str, offset: u64) -> Result<(Vec<Classifi
 
     loop {
         line.clear();
-        let n = reader.read_line(&mut line).map_err(|e| format!("reading: {}", e))?;
+        let n = reader
+            .read_line(&mut line)
+            .map_err(|e| format!("reading: {}", e))?;
         if n == 0 {
             break;
         }
@@ -132,7 +139,8 @@ fn is_session_file(name: &str, entry: &fs::DirEntry) -> bool {
 
 /// Discover all session .jsonl files in a project directory.
 pub fn discover_project_sessions(project_dir: &str) -> Result<Vec<SessionInfo>, String> {
-    let entries = fs::read_dir(project_dir).map_err(|e| format!("reading {}: {}", project_dir, e))?;
+    let entries =
+        fs::read_dir(project_dir).map_err(|e| format!("reading {}: {}", project_dir, e))?;
 
     let mut sessions = Vec::new();
 
@@ -214,7 +222,11 @@ pub fn discover_all_project_sessions(project_dirs: &[String]) -> Result<Vec<Sess
 
 /// Convert scanned metadata into a SessionInfo struct.
 /// Public for use by SessionCache.
-pub fn session_info_from_metadata(path: &str, mod_time: std::time::SystemTime, meta: SessionMetadata) -> SessionInfo {
+pub fn session_info_from_metadata(
+    path: &str,
+    mod_time: std::time::SystemTime,
+    meta: SessionMetadata,
+) -> SessionInfo {
     let mod_time_chrono: DateTime<Utc> = mod_time.into();
     let mut is_ongoing = super::ongoing::apply_staleness(meta.is_ongoing, mod_time);
     if !is_ongoing {
@@ -255,7 +267,8 @@ pub fn discover_project_sessions_with_scan<F>(
 where
     F: Fn(&str, std::time::SystemTime, u64) -> Option<SessionInfo>,
 {
-    let entries = fs::read_dir(project_dir).map_err(|e| format!("reading {}: {}", project_dir, e))?;
+    let entries =
+        fs::read_dir(project_dir).map_err(|e| format!("reading {}: {}", project_dir, e))?;
 
     let mut sessions = Vec::new();
 
@@ -383,10 +396,7 @@ pub(crate) fn scan_session_metadata(path: &str) -> SessionMetadata {
             .get("isSidechain")
             .and_then(|v| v.as_bool())
             .unwrap_or(false);
-        let is_meta_flag = raw
-            .get("isMeta")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(false);
+        let is_meta_flag = raw.get("isMeta").and_then(|v| v.as_bool()).unwrap_or(false);
 
         // Track timestamps for duration.
         if let Some(ts_str) = raw.get("timestamp").and_then(|v| v.as_str()) {
@@ -464,10 +474,7 @@ pub(crate) fn scan_session_metadata(path: &str) -> SessionMetadata {
                         model: model_str.to_string(),
                     };
 
-                    let request_id = raw
-                        .get("requestId")
-                        .and_then(|v| v.as_str())
-                        .unwrap_or("");
+                    let request_id = raw.get("requestId").and_then(|v| v.as_str()).unwrap_or("");
                     if !request_id.is_empty() {
                         // Last-entry-wins: streaming entries share a requestId.
                         request_tokens.insert(request_id.to_string(), snap);
@@ -517,10 +524,7 @@ pub(crate) fn scan_session_metadata(path: &str) -> SessionMetadata {
             continue;
         }
 
-        let content = raw
-            .get("message")
-            .and_then(|m| m.get("content"))
-            .cloned();
+        let content = raw.get("message").and_then(|m| m.get("content")).cloned();
         let text = extract_text(&content);
         if text.is_empty() {
             continue;
@@ -563,11 +567,15 @@ pub(crate) fn scan_session_metadata(path: &str) -> SessionMetadata {
 
     // Scan subagent JSONL files into the same request_tokens map (global requestId dedup).
     let mut fallback = TokenSnapshot {
-        input: 0, output: 0, cache_read: 0, cache_create: 0,
+        input: 0,
+        output: 0,
+        cache_read: 0,
+        cache_create: 0,
         model: String::new(),
     };
     super::subagent::scan_subagent_tokens_into(path, &mut request_tokens, &mut fallback);
-    meta.total_tokens += fallback.input + fallback.output + fallback.cache_read + fallback.cache_create;
+    meta.total_tokens +=
+        fallback.input + fallback.output + fallback.cache_read + fallback.cache_create;
     meta.input_tokens += fallback.input;
     meta.output_tokens += fallback.output;
     meta.cache_read_tokens += fallback.cache_read;
@@ -619,10 +627,7 @@ fn is_user_chunk_for_turn_count(
         return false;
     }
 
-    let content = raw
-        .get("message")
-        .and_then(|m| m.get("content"))
-        .cloned();
+    let content = raw.get("message").and_then(|m| m.get("content")).cloned();
     let text = extract_text(&content);
     let trimmed = text.trim();
 

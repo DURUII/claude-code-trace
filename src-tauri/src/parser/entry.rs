@@ -91,3 +91,97 @@ pub fn parse_entry(line: &[u8]) -> Option<Entry> {
     }
     Some(e)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    // --- parse_entry tests ---
+
+    #[test]
+    fn parse_entry_valid_json_returns_entry() {
+        let line = json!({
+            "type": "user",
+            "uuid": "abc-123",
+            "timestamp": "2025-01-15T10:30:00Z",
+            "message": {"role": "user", "content": "hello"}
+        });
+        let bytes = serde_json::to_vec(&line).unwrap();
+        let entry = parse_entry(&bytes);
+        assert!(entry.is_some());
+        let e = entry.unwrap();
+        assert_eq!(e.entry_type, "user");
+        assert_eq!(e.uuid, "abc-123");
+    }
+
+    #[test]
+    fn parse_entry_invalid_json_returns_none() {
+        let bytes = b"not valid json {{{";
+        assert!(parse_entry(bytes).is_none());
+    }
+
+    #[test]
+    fn parse_entry_without_uuid_or_leaf_uuid_returns_none() {
+        let line = json!({
+            "type": "user",
+            "timestamp": "2025-01-15T10:30:00Z",
+            "message": {"role": "user", "content": "hello"}
+        });
+        let bytes = serde_json::to_vec(&line).unwrap();
+        assert!(parse_entry(&bytes).is_none());
+    }
+
+    #[test]
+    fn parse_entry_with_leaf_uuid_only_returns_some() {
+        let line = json!({
+            "type": "user",
+            "leafUuid": "leaf-456",
+            "timestamp": "2025-01-15T10:30:00Z",
+            "message": {"role": "user"}
+        });
+        let bytes = serde_json::to_vec(&line).unwrap();
+        let entry = parse_entry(&bytes);
+        assert!(entry.is_some());
+        assert_eq!(entry.unwrap().leaf_uuid, "leaf-456");
+    }
+
+    // --- tool_use_result_map tests ---
+
+    #[test]
+    fn tool_use_result_map_returns_some_for_objects() {
+        let e = Entry {
+            tool_use_result: Some(json!({"key": "value", "count": 42})),
+            ..Default::default()
+        };
+        let map = e.tool_use_result_map();
+        assert!(map.is_some());
+        let m = map.unwrap();
+        assert_eq!(m.get("key").and_then(|v| v.as_str()), Some("value"));
+        assert_eq!(m.get("count").and_then(|v| v.as_i64()), Some(42));
+    }
+
+    #[test]
+    fn tool_use_result_map_returns_none_for_non_objects() {
+        let e = Entry {
+            tool_use_result: Some(json!("just a string")),
+            ..Default::default()
+        };
+        assert!(e.tool_use_result_map().is_none());
+
+        let e2 = Entry {
+            tool_use_result: Some(json!([1, 2, 3])),
+            ..Default::default()
+        };
+        assert!(e2.tool_use_result_map().is_none());
+    }
+
+    #[test]
+    fn tool_use_result_map_returns_none_for_none() {
+        let e = Entry {
+            tool_use_result: None,
+            ..Default::default()
+        };
+        assert!(e.tool_use_result_map().is_none());
+    }
+}

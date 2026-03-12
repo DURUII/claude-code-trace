@@ -6,8 +6,8 @@ use crate::parser::chunk::*;
 use crate::parser::last_output::{find_last_output, LastOutput, LastOutputType};
 use crate::parser::ongoing::is_subagent_ongoing;
 use crate::parser::subagent::SubagentProcess;
-use crate::parser::team::TeamSnapshot;
 use crate::parser::taxonomy::ToolCategory;
+use crate::parser::team::TeamSnapshot;
 
 /// Team color pool for synthetic color assignment.
 const TEAM_COLOR_POOL: &[&str] = &[
@@ -128,7 +128,10 @@ fn short_model(m: &str) -> String {
 }
 
 fn count_output_items(items: &[DisplayItem]) -> usize {
-    items.iter().filter(|it| it.item_type == DisplayItemType::Output).count()
+    items
+        .iter()
+        .filter(|it| it.item_type == DisplayItemType::Output)
+        .count()
 }
 
 fn display_item_type_str(t: &DisplayItemType) -> &'static str {
@@ -166,9 +169,8 @@ fn last_output_type_str(t: &LastOutputType) -> &'static str {
 
 fn pretty_json(val: &Option<Value>) -> String {
     match val {
-        Some(v) => serde_json::to_string_pretty(v).unwrap_or_else(|_| {
-            serde_json::to_string(v).unwrap_or_default()
-        }),
+        Some(v) => serde_json::to_string_pretty(v)
+            .unwrap_or_else(|_| serde_json::to_string(v).unwrap_or_default()),
         None => String::new(),
     }
 }
@@ -243,7 +245,8 @@ fn convert_display_items(
                     }
                     // Convert subagent's chunks into nested messages,
                     // passing all processes so nested agents (e.g. Skill forked execution) can link.
-                    fdi.subagent_messages = chunks_to_messages(&proc.chunks, subagents, color_by_tool_id);
+                    fdi.subagent_messages =
+                        chunks_to_messages(&proc.chunks, subagents, color_by_tool_id);
                 }
                 // Fallback: apply team color from toolUseResult data.
                 if fdi.team_color.is_empty() {
@@ -259,7 +262,9 @@ fn convert_display_items(
 
     // Assign pool colors to agent items without a team color.
     for di in &mut out {
-        if di.team_color.is_empty() && (!di.subagent_messages.is_empty() || di.item_type == "Subagent") {
+        if di.team_color.is_empty()
+            && (!di.subagent_messages.is_empty() || di.item_type == "Subagent")
+        {
             di.team_color = TEAM_COLOR_POOL[*pool_idx % TEAM_COLOR_POOL.len()].to_string();
             *pool_idx += 1;
         }
@@ -310,7 +315,9 @@ pub fn chunks_to_messages(
                     if it.item_type == DisplayItemType::Subagent && is_team_task(it) {
                         team_spawns += 1;
                     }
-                    if it.item_type == DisplayItemType::TeammateMessage && !it.teammate_id.is_empty() {
+                    if it.item_type == DisplayItemType::TeammateMessage
+                        && !it.teammate_id.is_empty()
+                    {
                         teammate_ids.insert(it.teammate_id.clone());
                     }
                 }
@@ -331,9 +338,16 @@ pub fn chunks_to_messages(
                     output_tokens: c.usage.output_tokens,
                     cache_read_tokens: c.usage.cache_read_tokens,
                     cache_creation_tokens: c.usage.cache_creation_tokens,
-                    context_tokens: c.usage.input_tokens + c.usage.cache_read_tokens + c.usage.cache_creation_tokens,
+                    context_tokens: c.usage.input_tokens
+                        + c.usage.cache_read_tokens
+                        + c.usage.cache_creation_tokens,
                     duration_ms: c.duration_ms,
-                    items: convert_display_items(&c.items, subagents, color_by_tool_id, &mut pool_idx),
+                    items: convert_display_items(
+                        &c.items,
+                        subagents,
+                        color_by_tool_id,
+                        &mut pool_idx,
+                    ),
                     last_output: frontend_lo,
                     is_error: false,
                     teammate_spawns: team_spawns,
@@ -405,4 +419,102 @@ pub fn has_team_task_items(chunks: &[Chunk]) -> bool {
         }
     }
     false
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ---- short_model tests ----
+
+    #[test]
+    fn short_model_opus() {
+        assert_eq!(short_model("claude-opus-4-6"), "opus4.6");
+    }
+
+    #[test]
+    fn short_model_sonnet() {
+        assert_eq!(short_model("claude-sonnet-4-6"), "sonnet4.6");
+    }
+
+    #[test]
+    fn short_model_haiku_with_date() {
+        assert_eq!(short_model("claude-haiku-4-5-20251001"), "haiku4.5");
+    }
+
+    #[test]
+    fn short_model_bare_name() {
+        assert_eq!(short_model("opus"), "opus");
+    }
+
+    #[test]
+    fn short_model_empty() {
+        assert_eq!(short_model(""), "");
+    }
+
+    // ---- tool_category_str tests ----
+
+    #[test]
+    fn tool_category_str_all_variants() {
+        assert_eq!(tool_category_str(&ToolCategory::Read), "Read");
+        assert_eq!(tool_category_str(&ToolCategory::Edit), "Edit");
+        assert_eq!(tool_category_str(&ToolCategory::Write), "Write");
+        assert_eq!(tool_category_str(&ToolCategory::Bash), "Bash");
+        assert_eq!(tool_category_str(&ToolCategory::Grep), "Grep");
+        assert_eq!(tool_category_str(&ToolCategory::Glob), "Glob");
+        assert_eq!(tool_category_str(&ToolCategory::Task), "Task");
+        assert_eq!(tool_category_str(&ToolCategory::Tool), "Tool");
+        assert_eq!(tool_category_str(&ToolCategory::Web), "Web");
+        assert_eq!(tool_category_str(&ToolCategory::Other), "Other");
+    }
+
+    // ---- display_item_type_str tests ----
+
+    #[test]
+    fn display_item_type_str_all_variants() {
+        assert_eq!(
+            display_item_type_str(&DisplayItemType::Thinking),
+            "Thinking"
+        );
+        assert_eq!(display_item_type_str(&DisplayItemType::Output), "Output");
+        assert_eq!(
+            display_item_type_str(&DisplayItemType::ToolCall),
+            "ToolCall"
+        );
+        assert_eq!(
+            display_item_type_str(&DisplayItemType::Subagent),
+            "Subagent"
+        );
+        assert_eq!(
+            display_item_type_str(&DisplayItemType::TeammateMessage),
+            "TeammateMessage"
+        );
+    }
+
+    // ---- format_time test ----
+
+    #[test]
+    fn format_time_produces_expected_format() {
+        use chrono::TimeZone;
+        let dt = chrono::Utc
+            .with_ymd_and_hms(2025, 6, 15, 12, 30, 45)
+            .unwrap();
+        let result = format_time(&dt);
+        // The exact output depends on local timezone, but the format should match.
+        let parts: Vec<&str> = result.split(' ').collect();
+        assert_eq!(parts.len(), 2);
+        // Date part: YYYY-MM-DD
+        assert_eq!(parts[0].len(), 10);
+        assert_eq!(parts[0].chars().filter(|c| *c == '-').count(), 2);
+        // Time part: HH:MM:SS
+        assert_eq!(parts[1].len(), 8);
+        assert_eq!(parts[1].chars().filter(|c| *c == ':').count(), 2);
+    }
+
+    // ---- TEAM_COLOR_POOL test ----
+
+    #[test]
+    fn team_color_pool_has_8_entries() {
+        assert_eq!(TEAM_COLOR_POOL.len(), 8);
+    }
 }

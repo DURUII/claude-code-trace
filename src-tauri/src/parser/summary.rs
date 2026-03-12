@@ -325,10 +325,7 @@ fn file_base(p: &str) -> String {
 
 /// Extracts a string field from a JSON map. Returns "" if missing or wrong type.
 fn get_str<'a>(fields: &'a serde_json::Map<String, Value>, key: &str) -> &'a str {
-    fields
-        .get(key)
-        .and_then(|v| v.as_str())
-        .unwrap_or("")
+    fields.get(key).and_then(|v| v.as_str()).unwrap_or("")
 }
 
 /// Also for HashMap<String, Value> usage in other modules.
@@ -341,10 +338,7 @@ pub fn get_string_from_map(fields: &std::collections::HashMap<String, Value>, ke
 
 /// Extracts a numeric field from a JSON map. Returns 0 if missing or wrong type.
 fn get_num(fields: &serde_json::Map<String, Value>, key: &str) -> i64 {
-    fields
-        .get(key)
-        .and_then(|v| v.as_f64())
-        .unwrap_or(0.0) as i64
+    fields.get(key).and_then(|v| v.as_f64()).unwrap_or(0.0) as i64
 }
 
 /// Truncate shortens a string to max_len runes, appending an ellipsis if truncated.
@@ -376,4 +370,330 @@ pub fn truncate_word(s: &str, max_len: usize) -> String {
     }
     let truncated: String = chars[..cutoff].iter().collect();
     format!("{}{}", truncated, ELLIPSIS)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    // ---- tool_summary tests ----
+
+    #[test]
+    fn summary_none_input() {
+        assert_eq!(tool_summary("Read", &None), "Read");
+    }
+
+    #[test]
+    fn summary_non_object_input() {
+        assert_eq!(tool_summary("Read", &Some(json!("string"))), "Read");
+    }
+
+    #[test]
+    fn summary_read_with_file_path() {
+        let input = Some(json!({"file_path": "/home/user/project/src/main.rs"}));
+        assert_eq!(tool_summary("Read", &input), "src/main.rs");
+    }
+
+    #[test]
+    fn summary_read_with_limit_offset() {
+        let input = Some(json!({"file_path": "/a/b/c.rs", "limit": 10, "offset": 5}));
+        assert_eq!(tool_summary("Read", &input), "b/c.rs - lines 5-14");
+    }
+
+    #[test]
+    fn summary_read_with_limit_no_offset() {
+        let input = Some(json!({"file_path": "/a/b/c.rs", "limit": 20}));
+        assert_eq!(tool_summary("Read", &input), "b/c.rs - lines 1-20");
+    }
+
+    #[test]
+    fn summary_read_no_file_path() {
+        let input = Some(json!({}));
+        assert_eq!(tool_summary("Read", &input), "Read");
+    }
+
+    #[test]
+    fn summary_write_with_content() {
+        let input = Some(json!({"file_path": "/x/y/z.txt", "content": "line1\nline2\nline3"}));
+        assert_eq!(tool_summary("Write", &input), "y/z.txt - 3 lines");
+    }
+
+    #[test]
+    fn summary_write_no_content() {
+        let input = Some(json!({"file_path": "/x/y/z.txt"}));
+        assert_eq!(tool_summary("Write", &input), "y/z.txt");
+    }
+
+    #[test]
+    fn summary_write_no_file_path() {
+        let input = Some(json!({}));
+        assert_eq!(tool_summary("Write", &input), "Write");
+    }
+
+    #[test]
+    fn summary_edit_same_lines() {
+        let input = Some(json!({
+            "file_path": "/a/b/c.rs",
+            "old_string": "old line",
+            "new_string": "new line"
+        }));
+        assert_eq!(tool_summary("Edit", &input), "b/c.rs - 1 line");
+    }
+
+    #[test]
+    fn summary_edit_multiple_same_lines() {
+        let input = Some(json!({
+            "file_path": "/a/b/c.rs",
+            "old_string": "line1\nline2\nline3",
+            "new_string": "new1\nnew2\nnew3"
+        }));
+        assert_eq!(tool_summary("Edit", &input), "b/c.rs - 3 lines");
+    }
+
+    #[test]
+    fn summary_edit_different_lines() {
+        let input = Some(json!({
+            "file_path": "/a/b/c.rs",
+            "old_string": "one line",
+            "new_string": "line1\nline2\nline3"
+        }));
+        assert_eq!(tool_summary("Edit", &input), "b/c.rs - 1 -> 3 lines");
+    }
+
+    #[test]
+    fn summary_edit_no_file_path() {
+        let input = Some(json!({"old_string": "a", "new_string": "b"}));
+        assert_eq!(tool_summary("Edit", &input), "Edit");
+    }
+
+    #[test]
+    fn summary_bash_desc_and_cmd() {
+        let input = Some(json!({"description": "List files", "command": "ls -la"}));
+        assert_eq!(tool_summary("Bash", &input), "List files: ls -la");
+    }
+
+    #[test]
+    fn summary_bash_desc_only() {
+        let input = Some(json!({"description": "Run tests"}));
+        assert_eq!(tool_summary("Bash", &input), "Run tests");
+    }
+
+    #[test]
+    fn summary_bash_cmd_only() {
+        let input = Some(json!({"command": "cargo build"}));
+        assert_eq!(tool_summary("Bash", &input), "cargo build");
+    }
+
+    #[test]
+    fn summary_bash_empty() {
+        let input = Some(json!({}));
+        assert_eq!(tool_summary("Bash", &input), "Bash");
+    }
+
+    #[test]
+    fn summary_grep_pattern_only() {
+        let input = Some(json!({"pattern": "TODO"}));
+        assert_eq!(tool_summary("Grep", &input), "\"TODO\"");
+    }
+
+    #[test]
+    fn summary_grep_with_glob() {
+        let input = Some(json!({"pattern": "TODO", "glob": "*.rs"}));
+        assert_eq!(tool_summary("Grep", &input), "\"TODO\" in *.rs");
+    }
+
+    #[test]
+    fn summary_grep_with_path() {
+        let input = Some(json!({"pattern": "TODO", "path": "/home/user/src/main.rs"}));
+        assert_eq!(tool_summary("Grep", &input), "\"TODO\" in main.rs");
+    }
+
+    #[test]
+    fn summary_grep_empty() {
+        let input = Some(json!({}));
+        assert_eq!(tool_summary("Grep", &input), "Grep");
+    }
+
+    #[test]
+    fn summary_glob_pattern_only() {
+        let input = Some(json!({"pattern": "**/*.rs"}));
+        assert_eq!(tool_summary("Glob", &input), "\"**/*.rs\"");
+    }
+
+    #[test]
+    fn summary_glob_with_path() {
+        let input = Some(json!({"pattern": "*.rs", "path": "/home/user/src"}));
+        assert_eq!(tool_summary("Glob", &input), "\"*.rs\" in src");
+    }
+
+    #[test]
+    fn summary_glob_empty() {
+        let input = Some(json!({}));
+        assert_eq!(tool_summary("Glob", &input), "Glob");
+    }
+
+    #[test]
+    fn summary_task_with_description() {
+        let input = Some(json!({"description": "Analyze the code"}));
+        assert_eq!(tool_summary("Task", &input), "Analyze the code");
+    }
+
+    #[test]
+    fn summary_task_with_prompt() {
+        let input = Some(json!({"prompt": "Do something"}));
+        assert_eq!(tool_summary("Agent", &input), "Do something");
+    }
+
+    #[test]
+    fn summary_task_with_subagent_type() {
+        let input = Some(json!({"subagentType": "researcher", "description": "Find info"}));
+        assert_eq!(tool_summary("Task", &input), "researcher - Find info");
+    }
+
+    #[test]
+    fn summary_task_subagent_type_only() {
+        let input = Some(json!({"subagentType": "researcher"}));
+        assert_eq!(tool_summary("Task", &input), "researcher");
+    }
+
+    #[test]
+    fn summary_task_empty() {
+        let input = Some(json!({}));
+        assert_eq!(tool_summary("Task", &input), "Task");
+    }
+
+    #[test]
+    fn summary_web_fetch_with_url() {
+        let input = Some(json!({"url": "https://example.com/path/to/page"}));
+        assert_eq!(tool_summary("WebFetch", &input), "example.com/path/to/page");
+    }
+
+    #[test]
+    fn summary_web_fetch_with_port() {
+        let input = Some(json!({"url": "http://localhost:3000/api"}));
+        assert_eq!(tool_summary("WebFetch", &input), "localhost/api");
+    }
+
+    #[test]
+    fn summary_web_fetch_no_path() {
+        let input = Some(json!({"url": "https://example.com"}));
+        assert_eq!(tool_summary("WebFetch", &input), "example.com");
+    }
+
+    #[test]
+    fn summary_web_fetch_empty() {
+        let input = Some(json!({}));
+        assert_eq!(tool_summary("WebFetch", &input), "WebFetch");
+    }
+
+    #[test]
+    fn summary_web_search_with_query() {
+        let input = Some(json!({"query": "rust testing"}));
+        assert_eq!(tool_summary("WebSearch", &input), "\"rust testing\"");
+    }
+
+    #[test]
+    fn summary_web_search_empty() {
+        let input = Some(json!({}));
+        assert_eq!(tool_summary("WebSearch", &input), "WebSearch");
+    }
+
+    #[test]
+    fn summary_default_with_common_keys() {
+        let input = Some(json!({"name": "my-tool", "extra": "data"}));
+        assert_eq!(tool_summary("SomeUnknown", &input), "my-tool");
+    }
+
+    #[test]
+    fn summary_default_with_path_key() {
+        let input = Some(json!({"path": "/some/path"}));
+        assert_eq!(tool_summary("SomeUnknown", &input), "/some/path");
+    }
+
+    #[test]
+    fn summary_default_empty_fields() {
+        let input = Some(json!({}));
+        assert_eq!(tool_summary("SomeUnknown", &input), "SomeUnknown");
+    }
+
+    #[test]
+    fn summary_default_falls_back_to_first_string() {
+        let input = Some(json!({"zzz_field": "hello"}));
+        assert_eq!(tool_summary("SomeUnknown", &input), "hello");
+    }
+
+    // ---- short_path tests ----
+
+    #[test]
+    fn short_path_fewer_segments() {
+        assert_eq!(short_path("file.rs", 2), "file.rs");
+    }
+
+    #[test]
+    fn short_path_exact_segments() {
+        assert_eq!(short_path("src/main.rs", 2), "src/main.rs");
+    }
+
+    #[test]
+    fn short_path_more_segments() {
+        assert_eq!(
+            short_path("/home/user/project/src/main.rs", 2),
+            "src/main.rs"
+        );
+    }
+
+    #[test]
+    fn short_path_single_segment() {
+        assert_eq!(short_path("/home/user/project/src/main.rs", 1), "main.rs");
+    }
+
+    #[test]
+    fn short_path_backslashes() {
+        assert_eq!(
+            short_path("C:\\Users\\project\\src\\main.rs", 2),
+            "src/main.rs"
+        );
+    }
+
+    // ---- truncate tests ----
+
+    #[test]
+    fn truncate_within_limit() {
+        assert_eq!(truncate("short", 10), "short");
+    }
+
+    #[test]
+    fn truncate_over_limit() {
+        let result = truncate("this is a long string", 10);
+        assert_eq!(result.chars().count(), 10);
+        assert!(result.ends_with('\u{2026}'));
+    }
+
+    #[test]
+    fn truncate_collapses_newlines() {
+        assert_eq!(truncate("line1\nline2", 20), "line1 line2");
+    }
+
+    // ---- truncate_word tests ----
+
+    #[test]
+    fn truncate_word_within_limit() {
+        assert_eq!(truncate_word("short text", 20), "short text");
+    }
+
+    #[test]
+    fn truncate_word_breaks_at_space() {
+        let result = truncate_word("hello world this is a test string for truncation", 25);
+        assert!(result.ends_with('\u{2026}'));
+        // Should break at a word boundary
+        assert!(!result.contains("trun"));
+    }
+
+    #[test]
+    fn truncate_word_no_space_falls_back() {
+        let result = truncate_word("abcdefghijklmnopqrstuvwxyz", 10);
+        assert!(result.ends_with('\u{2026}'));
+        assert_eq!(result.chars().count(), 10);
+    }
 }

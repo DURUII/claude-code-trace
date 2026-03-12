@@ -1,12 +1,6 @@
 import { useMemo } from "react";
 import type { DisplayMessage, SessionMeta, SessionTotals, GitInfo } from "../types";
-import {
-  shortPath,
-  shortMode,
-  contextPercent,
-  formatTokens,
-  formatCost,
-} from "../lib/format";
+import { shortPath, shortMode, contextPercent, formatTokens, formatCost } from "../lib/format";
 import { getContextColor, spinnerFrames } from "../lib/theme";
 
 interface InfoBarProps {
@@ -50,9 +44,7 @@ export function InfoBar({
     <div className="info-bar">
       {projectName && <span className="info-bar__project">{projectName}</span>}
 
-      {sessionId && (
-        <span className="info-bar__session-id">{sessionId}</span>
-      )}
+      {sessionId && <span className="info-bar__session-id">{sessionId}</span>}
 
       {branch && (
         <span className={`info-bar__branch${dirty ? " info-bar__branch--dirty" : ""}`}>

@@ -37,7 +37,8 @@ pub struct DebugEntry {
 lazy_static! {
     static ref DEBUG_LINE_RE: Regex = Regex::new(
         r"^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z)\s+\[(DEBUG|WARN|ERROR)\]\s+(.*)$"
-    ).unwrap();
+    )
+    .unwrap();
     static ref DEBUG_CATEGORY_RE: Regex = Regex::new(r"^\[([^\]]+)\]\s*(.*)$").unwrap();
 }
 
@@ -57,16 +58,24 @@ pub fn read_debug_log(path: &str) -> Result<(Vec<DebugEntry>, u64), String> {
 fn read_debug_log_incremental(path: &str, offset: u64) -> Result<(Vec<DebugEntry>, u64), String> {
     let f = fs::File::open(path).map_err(|e| format!("opening {}: {}", path, e))?;
     let mut reader = BufReader::new(f);
-    reader.seek(SeekFrom::Start(offset)).map_err(|e| format!("seeking: {}", e))?;
+    reader
+        .seek(SeekFrom::Start(offset))
+        .map_err(|e| format!("seeking: {}", e))?;
 
     let mut entries = Vec::new();
     let mut bytes_read = offset;
-    let mut line_num = if offset == 0 { 0 } else { count_lines_before_offset(path, offset) };
+    let mut line_num = if offset == 0 {
+        0
+    } else {
+        count_lines_before_offset(path, offset)
+    };
 
     let mut line = String::new();
     loop {
         line.clear();
-        let n = reader.read_line(&mut line).map_err(|e| format!("reading: {}", e))?;
+        let n = reader
+            .read_line(&mut line)
+            .map_err(|e| format!("reading: {}", e))?;
         if n == 0 {
             break;
         }
@@ -157,7 +166,10 @@ pub fn debug_log_path(session_path: &str) -> String {
         Some(h) => h,
         None => return String::new(),
     };
-    let debug_path = home.join(".claude").join("debug").join(format!("{}.txt", base));
+    let debug_path = home
+        .join(".claude")
+        .join("debug")
+        .join(format!("{}.txt", base));
     if debug_path.exists() {
         debug_path.to_string_lossy().to_string()
     } else {
@@ -170,7 +182,11 @@ pub fn filter_by_level(entries: &[DebugEntry], min_level: &DebugLevel) -> Vec<De
     if *min_level == DebugLevel::Debug {
         return entries.to_vec();
     }
-    entries.iter().filter(|e| e.level >= *min_level).cloned().collect()
+    entries
+        .iter()
+        .filter(|e| e.level >= *min_level)
+        .cloned()
+        .collect()
 }
 
 /// Filter entries by text query (case-insensitive).

@@ -21,7 +21,9 @@ export function ResizeHandle({ onResize, direction = "horizontal" }: ResizeHandl
       const prev = handle.previousElementSibling as HTMLElement | null;
       if (!prev) return;
       const startSize =
-        direction === "horizontal" ? prev.getBoundingClientRect().width : prev.getBoundingClientRect().height;
+        direction === "horizontal"
+          ? prev.getBoundingClientRect().width
+          : prev.getBoundingClientRect().height;
 
       document.body.style.cursor = direction === "horizontal" ? "col-resize" : "row-resize";
       document.body.style.userSelect = "none";

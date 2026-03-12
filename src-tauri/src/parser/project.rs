@@ -93,11 +93,17 @@ fn repo_root_from_git_file(repo_dir: &Path, git_file: &Path) -> Option<PathBuf> 
 
     // Fallback: parse worktrees path
     let git_dir_str = git_dir.to_string_lossy();
-    let marker = format!("{}worktrees{}", std::path::MAIN_SEPARATOR, std::path::MAIN_SEPARATOR);
+    let marker = format!(
+        "{}worktrees{}",
+        std::path::MAIN_SEPARATOR,
+        std::path::MAIN_SEPARATOR
+    );
     if let Some(idx) = git_dir_str.find(&format!(".git{}", marker)) {
         let root = &git_dir_str[..idx];
         if !root.is_empty() {
-            return Some(PathBuf::from(root.trim_end_matches(std::path::MAIN_SEPARATOR)));
+            return Some(PathBuf::from(
+                root.trim_end_matches(std::path::MAIN_SEPARATOR),
+            ));
         }
     }
 
@@ -146,4 +152,107 @@ fn is_default_branch(branch: &str) -> bool {
         branch.to_lowercase().as_str(),
         "main" | "master" | "trunk" | "develop" | "dev"
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // --- project_name tests ---
+
+    #[test]
+    fn project_name_empty_cwd_returns_empty() {
+        assert_eq!(project_name("", ""), "");
+    }
+
+    #[test]
+    fn project_name_path_returns_last_component() {
+        // When there's no .git directory, project_name returns the last path component
+        // (possibly trimmed of branch suffix). Use a path that won't have a .git dir.
+        let name = project_name("/tmp/nonexistent-test-dir-xyz/my-project", "");
+        assert_eq!(name, "my-project");
+    }
+
+    #[test]
+    fn project_name_trims_branch_suffix() {
+        let name = project_name(
+            "/tmp/nonexistent-test-dir-xyz/my-project-feature-abc",
+            "feature/abc",
+        );
+        assert_eq!(name, "my-project");
+    }
+
+    #[test]
+    fn project_name_does_not_trim_default_branch() {
+        let name = project_name("/tmp/nonexistent-test-dir-xyz/my-project", "main");
+        assert_eq!(name, "my-project");
+    }
+
+    // --- trim_branch_suffix tests ---
+
+    #[test]
+    fn trim_branch_suffix_removes_matching_suffix() {
+        assert_eq!(
+            trim_branch_suffix("project-feature-abc", "feature/abc"),
+            "project"
+        );
+    }
+
+    #[test]
+    fn trim_branch_suffix_no_match_returns_original() {
+        assert_eq!(trim_branch_suffix("project", "feature/abc"), "project");
+    }
+
+    #[test]
+    fn trim_branch_suffix_empty_branch_returns_original() {
+        assert_eq!(trim_branch_suffix("project", ""), "project");
+    }
+
+    #[test]
+    fn trim_branch_suffix_default_branch_returns_original() {
+        assert_eq!(trim_branch_suffix("project-main", "main"), "project-main");
+    }
+
+    // --- is_default_branch tests ---
+
+    #[test]
+    fn is_default_branch_recognizes_defaults() {
+        assert!(is_default_branch("main"));
+        assert!(is_default_branch("master"));
+        assert!(is_default_branch("trunk"));
+        assert!(is_default_branch("develop"));
+        assert!(is_default_branch("dev"));
+    }
+
+    #[test]
+    fn is_default_branch_rejects_non_defaults() {
+        assert!(!is_default_branch("feature/abc"));
+        assert!(!is_default_branch("bugfix-123"));
+        assert!(!is_default_branch(""));
+    }
+
+    // --- normalize_branch_token tests ---
+
+    #[test]
+    fn normalize_branch_token_converts_slashes_to_dashes() {
+        assert_eq!(normalize_branch_token("feature/abc"), "feature-abc");
+    }
+
+    #[test]
+    fn normalize_branch_token_lowercases() {
+        assert_eq!(normalize_branch_token("Feature/ABC"), "feature-abc");
+    }
+
+    #[test]
+    fn normalize_branch_token_collapses_separators() {
+        assert_eq!(normalize_branch_token("a//b"), "a-b");
+    }
+
+    // --- resolve_git_root tests ---
+
+    #[test]
+    fn resolve_git_root_non_git_returns_original() {
+        let dir = "/tmp/nonexistent-test-dir-xyz";
+        assert_eq!(resolve_git_root(dir), dir);
+    }
 }

@@ -159,7 +159,10 @@ fn is_ending(at: &ActivityType) -> bool {
 }
 
 fn is_ai_activity(at: &ActivityType) -> bool {
-    matches!(at, ActivityType::Thinking | ActivityType::ToolUse | ActivityType::ToolResult)
+    matches!(
+        at,
+        ActivityType::Thinking | ActivityType::ToolUse | ActivityType::ToolResult
+    )
 }
 
 fn is_ongoing_from_activities(activities: &[(ActivityType, usize)]) -> bool {
@@ -177,7 +180,9 @@ fn is_ongoing_from_activities(activities: &[(ActivityType, usize)]) -> bool {
 
     match last_ending_idx {
         None => activities.iter().any(|(at, _)| is_ai_activity(at)),
-        Some(lei) => activities.iter().any(|(at, idx)| *idx > lei && is_ai_activity(at)),
+        Some(lei) => activities
+            .iter()
+            .any(|(at, idx)| *idx > lei && is_ai_activity(at)),
     }
 }
 
@@ -205,4 +210,145 @@ fn has_pending_agents(chunks: &[Chunk]) -> bool {
         }
     }
     false
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::{Duration, Utc};
+    use serde_json::json;
+
+    fn make_chunk(chunk_type: ChunkType) -> Chunk {
+        Chunk {
+            chunk_type,
+            ..Default::default()
+        }
+    }
+
+    fn make_item(item_type: DisplayItemType) -> DisplayItem {
+        DisplayItem {
+            item_type,
+            ..Default::default()
+        }
+    }
+
+    // --- apply_staleness tests ---
+
+    #[test]
+    fn apply_staleness_false_when_not_ongoing() {
+        assert!(!apply_staleness(false, Utc::now()));
+    }
+
+    #[test]
+    fn apply_staleness_true_when_ongoing_and_recent() {
+        let recent = Utc::now() - Duration::seconds(10);
+        assert!(apply_staleness(true, recent));
+    }
+
+    #[test]
+    fn apply_staleness_false_when_ongoing_and_stale() {
+        let stale = Utc::now() - Duration::seconds(300);
+        assert!(!apply_staleness(true, stale));
+    }
+
+    // --- is_shutdown_approval tests ---
+
+    #[test]
+    fn is_shutdown_approval_true_for_valid_shutdown() {
+        let input = Some(json!({
+            "type": "shutdown_response",
+            "approve": true
+        }));
+        assert!(is_shutdown_approval("SendMessage", &input));
+    }
+
+    #[test]
+    fn is_shutdown_approval_false_for_other_tools() {
+        let input = Some(json!({
+            "type": "shutdown_response",
+            "approve": true
+        }));
+        assert!(!is_shutdown_approval("Bash", &input));
+    }
+
+    #[test]
+    fn is_shutdown_approval_false_for_missing_fields() {
+        let input = Some(json!({"type": "other_type"}));
+        assert!(!is_shutdown_approval("SendMessage", &input));
+    }
+
+    #[test]
+    fn is_shutdown_approval_false_for_none_input() {
+        assert!(!is_shutdown_approval("SendMessage", &None));
+    }
+
+    // --- is_ongoing tests ---
+
+    #[test]
+    fn is_ongoing_empty_chunks_returns_false() {
+        assert!(!is_ongoing(&[]));
+    }
+
+    #[test]
+    fn is_ongoing_trailing_user_chunk_returns_true() {
+        let chunks = vec![make_chunk(ChunkType::AI), make_chunk(ChunkType::User)];
+        assert!(is_ongoing(&chunks));
+    }
+
+    #[test]
+    fn is_ongoing_ai_chunk_with_end_turn_returns_false() {
+        let mut ai_chunk = make_chunk(ChunkType::AI);
+        ai_chunk.stop_reason = "end_turn".to_string();
+        let chunks = vec![ai_chunk];
+        assert!(!is_ongoing(&chunks));
+    }
+
+    #[test]
+    fn is_ongoing_pending_agent_returns_true() {
+        let mut ai_chunk = make_chunk(ChunkType::AI);
+        ai_chunk.items.push(DisplayItem {
+            item_type: DisplayItemType::Subagent,
+            tool_name: "Task".to_string(),
+            tool_result: String::new(), // no result = pending
+            ..Default::default()
+        });
+        let chunks = vec![ai_chunk];
+        assert!(is_ongoing(&chunks));
+    }
+
+    #[test]
+    fn is_ongoing_text_output_at_end_returns_false() {
+        let mut ai_chunk = make_chunk(ChunkType::AI);
+        ai_chunk.items.push(DisplayItem {
+            item_type: DisplayItemType::ToolCall,
+            tool_name: "Bash".to_string(),
+            tool_result: "done".to_string(),
+            ..Default::default()
+        });
+        ai_chunk.items.push(DisplayItem {
+            item_type: DisplayItemType::Output,
+            text: "Here is the result".to_string(),
+            ..Default::default()
+        });
+        let chunks = vec![ai_chunk];
+        assert!(!is_ongoing(&chunks));
+    }
+
+    #[test]
+    fn is_ongoing_tool_use_after_text_returns_true() {
+        let mut ai_chunk = make_chunk(ChunkType::AI);
+        ai_chunk.items.push(DisplayItem {
+            item_type: DisplayItemType::Output,
+            text: "Let me check".to_string(),
+            ..Default::default()
+        });
+        ai_chunk.items.push(DisplayItem {
+            item_type: DisplayItemType::ToolCall,
+            tool_name: "Bash".to_string(),
+            tool_result: String::new(), // no result yet
+            ..Default::default()
+        });
+        let chunks = vec![ai_chunk];
+        assert!(is_ongoing(&chunks));
+    }
 }

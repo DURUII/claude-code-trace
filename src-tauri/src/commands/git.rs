@@ -38,7 +38,9 @@ fn check_git_branch(cwd: &str) -> String {
         .ok()
         .and_then(|o| {
             if o.status.success() {
-                String::from_utf8(o.stdout).ok().map(|s| s.trim().to_string())
+                String::from_utf8(o.stdout)
+                    .ok()
+                    .map(|s| s.trim().to_string())
             } else {
                 None
             }
@@ -62,9 +64,9 @@ fn discover_worktree_dirs(cwd: &str) -> Vec<String> {
         .ok()
         .and_then(|o| {
             if o.status.success() {
-                String::from_utf8(o.stdout).ok().map(|output| {
-                    parse_worktree_paths(&output)
-                })
+                String::from_utf8(o.stdout)
+                    .ok()
+                    .map(|output| parse_worktree_paths(&output))
             } else {
                 None
             }
@@ -75,8 +77,6 @@ fn discover_worktree_dirs(cwd: &str) -> Vec<String> {
 fn parse_worktree_paths(output: &str) -> Vec<String> {
     output
         .lines()
-        .filter_map(|line| {
-            line.strip_prefix("worktree ").map(|p| p.to_string())
-        })
+        .filter_map(|line| line.strip_prefix("worktree ").map(|p| p.to_string()))
         .collect()
 }

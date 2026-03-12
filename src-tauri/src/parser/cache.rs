@@ -29,12 +29,7 @@ impl SessionCache {
 
     /// Get cached SessionInfo or rescan if file changed.
     /// Returns None if the file should be skipped (e.g. turn_count == 0).
-    pub fn get_or_scan(
-        &self,
-        path: &str,
-        mod_time: SystemTime,
-        size: u64,
-    ) -> Option<SessionInfo> {
+    pub fn get_or_scan(&self, path: &str, mod_time: SystemTime, size: u64) -> Option<SessionInfo> {
         let mut cache = self.file_cache.lock().unwrap();
         if let Some(cached) = cache.get(path) {
             if cached.mod_time == mod_time && cached.size == size {
@@ -71,9 +66,11 @@ impl SessionCache {
     ) -> Result<Vec<SessionInfo>, String> {
         let mut all = Vec::new();
         for dir in project_dirs {
-            if let Ok(sessions) = discover_project_sessions_with_scan(dir, |path, mod_time, size| {
-                self.get_or_scan(path, mod_time, size)
-            }) {
+            if let Ok(sessions) =
+                discover_project_sessions_with_scan(dir, |path, mod_time, size| {
+                    self.get_or_scan(path, mod_time, size)
+                })
+            {
                 all.extend(sessions);
             }
         }

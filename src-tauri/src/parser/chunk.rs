@@ -241,7 +241,9 @@ fn merge_ai_buffer(buf: &[AIMsg]) -> Chunk {
                         });
                     }
                     "tool_use" => {
-                        let input_len = b.tool_input.as_ref()
+                        let input_len = b
+                            .tool_input
+                            .as_ref()
                             .map(|v| serde_json::to_string(v).unwrap_or_default().len())
                             .unwrap_or(0);
                         let summary = tool_summary(&b.tool_name, &b.tool_input);
@@ -274,10 +276,13 @@ fn merge_ai_buffer(buf: &[AIMsg]) -> Chunk {
                                 ..Default::default()
                             });
                         }
-                        pending.insert(b.tool_id.clone(), PendingTool {
-                            index: items.len() - 1,
-                            timestamp: m.timestamp,
-                        });
+                        pending.insert(
+                            b.tool_id.clone(),
+                            PendingTool {
+                                index: items.len() - 1,
+                                timestamp: m.timestamp,
+                            },
+                        );
                     }
                     _ => {}
                 }
@@ -366,7 +371,9 @@ fn suppress_inflated_durations(items: &mut [DisplayItem]) {
     }
 
     for item in items.iter_mut() {
-        if item.item_type == DisplayItemType::Subagent || item.item_type == DisplayItemType::TeammateMessage {
+        if item.item_type == DisplayItemType::Subagent
+            || item.item_type == DisplayItemType::TeammateMessage
+        {
             continue;
         }
         if item.duration_ms > CONCURRENT_TASK_DURATION_THRESHOLD {
@@ -382,14 +389,26 @@ fn extract_subagent_info(input: &Option<Value>) -> (String, String, String) {
         _ => return (String::new(), String::new(), String::new()),
     };
 
-    let subagent_type = map.get("subagent_type").and_then(|v| v.as_str()).unwrap_or("").to_string();
-    let mut description = map.get("description").and_then(|v| v.as_str()).unwrap_or("").to_string();
+    let subagent_type = map
+        .get("subagent_type")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+    let mut description = map
+        .get("description")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
     if description.is_empty() {
         if let Some(prompt) = map.get("prompt").and_then(|v| v.as_str()) {
             description = super::summary::truncate(prompt, 80);
         }
     }
-    let member_name = map.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
+    let member_name = map
+        .get("name")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
 
     (subagent_type, description, member_name)
 }
@@ -397,9 +416,7 @@ fn extract_subagent_info(input: &Option<Value>) -> (String, String, String) {
 /// Check whether a DisplayItem is a team task (has team_name and name in input).
 pub fn is_team_task(item: &DisplayItem) -> bool {
     match &item.tool_input {
-        Some(Value::Object(map)) => {
-            map.contains_key("team_name") && map.contains_key("name")
-        }
+        Some(Value::Object(map)) => map.contains_key("team_name") && map.contains_key("name"),
         _ => false,
     }
 }

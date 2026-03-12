@@ -1,10 +1,10 @@
 #![allow(dead_code)]
 
-mod parser;
 mod commands;
 mod convert;
-mod watcher;
+mod parser;
 mod state;
+mod watcher;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {

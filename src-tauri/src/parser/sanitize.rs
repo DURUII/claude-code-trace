@@ -167,3 +167,204 @@ pub fn stringify_content(raw: &Option<Value>) -> String {
     // Last resort: raw JSON string.
     val.to_string()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    // ---- extract_text tests ----
+
+    #[test]
+    fn extract_text_none() {
+        assert_eq!(extract_text(&None), "");
+    }
+
+    #[test]
+    fn extract_text_string() {
+        let v = Some(json!("hello world"));
+        assert_eq!(extract_text(&v), "hello world");
+    }
+
+    #[test]
+    fn extract_text_array_with_text_blocks() {
+        let v = Some(json!([
+            {"type": "text", "text": "first"},
+            {"type": "text", "text": "second"}
+        ]));
+        assert_eq!(extract_text(&v), "first\nsecond");
+    }
+
+    #[test]
+    fn extract_text_array_skips_non_text() {
+        let v = Some(json!([
+            {"type": "image", "url": "http://example.com"},
+            {"type": "text", "text": "only this"}
+        ]));
+        assert_eq!(extract_text(&v), "only this");
+    }
+
+    #[test]
+    fn extract_text_empty_array() {
+        let v = Some(json!([]));
+        assert_eq!(extract_text(&v), "");
+    }
+
+    #[test]
+    fn extract_text_number_returns_empty() {
+        let v = Some(json!(42));
+        assert_eq!(extract_text(&v), "");
+    }
+
+    // ---- sanitize_content tests ----
+
+    #[test]
+    fn sanitize_plain_text() {
+        assert_eq!(sanitize_content("Hello, world!"), "Hello, world!");
+    }
+
+    #[test]
+    fn sanitize_command_output_stdout() {
+        let s = "<local-command-stdout>output text</local-command-stdout>";
+        assert_eq!(sanitize_content(s), "output text");
+    }
+
+    #[test]
+    fn sanitize_command_message() {
+        let s = "<command-name>/commit</command-name><command-args>fix bug</command-args>";
+        assert_eq!(sanitize_content(s), "/commit fix bug");
+    }
+
+    #[test]
+    fn sanitize_command_name_only() {
+        let s = "<command-name>/help</command-name>";
+        assert_eq!(sanitize_content(s), "/help");
+    }
+
+    #[test]
+    fn sanitize_noise_tags_removed() {
+        let s = "before<system-reminder>noise</system-reminder>after";
+        assert_eq!(sanitize_content(s), "beforeafter");
+    }
+
+    #[test]
+    fn sanitize_local_command_caveat_removed() {
+        let s = "text<local-command-caveat>caveat</local-command-caveat>end";
+        assert_eq!(sanitize_content(s), "textend");
+    }
+
+    // ---- extract_bash_output tests ----
+
+    #[test]
+    fn extract_bash_output_stdout() {
+        let s = "<bash-stdout>hello bash</bash-stdout>";
+        assert_eq!(extract_bash_output(s), "hello bash");
+    }
+
+    #[test]
+    fn extract_bash_output_stderr() {
+        let s = "<bash-stderr>error msg</bash-stderr>";
+        assert_eq!(extract_bash_output(s), "error msg");
+    }
+
+    #[test]
+    fn extract_bash_output_neither() {
+        assert_eq!(extract_bash_output("just plain text"), "");
+    }
+
+    #[test]
+    fn extract_bash_output_prefers_stdout() {
+        let s = "<bash-stdout>out</bash-stdout><bash-stderr>err</bash-stderr>";
+        assert_eq!(extract_bash_output(s), "out");
+    }
+
+    // ---- stringify_content tests ----
+
+    #[test]
+    fn stringify_content_none() {
+        assert_eq!(stringify_content(&None), "");
+    }
+
+    #[test]
+    fn stringify_content_string() {
+        let v = Some(json!("simple string"));
+        assert_eq!(stringify_content(&v), "simple string");
+    }
+
+    #[test]
+    fn stringify_content_array_text_blocks() {
+        let v = Some(json!([
+            {"text": "block1"},
+            {"text": "block2"}
+        ]));
+        assert_eq!(stringify_content(&v), "block1\nblock2");
+    }
+
+    #[test]
+    fn stringify_content_array_empty_text() {
+        let v = Some(json!([{"text": ""}]));
+        // Empty text blocks are filtered, falls through to raw JSON
+        let result = stringify_content(&v);
+        assert!(!result.is_empty());
+    }
+
+    #[test]
+    fn stringify_content_non_string_value() {
+        let v = Some(json!(42));
+        assert_eq!(stringify_content(&v), "42");
+    }
+
+    #[test]
+    fn stringify_content_object_value() {
+        let v = Some(json!({"key": "value"}));
+        let result = stringify_content(&v);
+        assert!(result.contains("key"));
+        assert!(result.contains("value"));
+    }
+
+    // ---- extract_command_output tests ----
+
+    #[test]
+    fn extract_command_output_stdout() {
+        let s = "<local-command-stdout>output here</local-command-stdout>";
+        assert_eq!(extract_command_output(s), "output here");
+    }
+
+    #[test]
+    fn extract_command_output_stderr() {
+        let s = "<local-command-stderr>err output</local-command-stderr>";
+        assert_eq!(extract_command_output(s), "err output");
+    }
+
+    #[test]
+    fn extract_command_output_neither() {
+        assert_eq!(extract_command_output("no tags here"), "");
+    }
+
+    // ---- is_command_output tests ----
+
+    #[test]
+    fn is_command_output_with_stdout() {
+        assert!(is_command_output(
+            "<local-command-stdout>stuff</local-command-stdout>"
+        ));
+    }
+
+    #[test]
+    fn is_command_output_with_stderr() {
+        assert!(is_command_output(
+            "<local-command-stderr>stuff</local-command-stderr>"
+        ));
+    }
+
+    #[test]
+    fn is_command_output_plain_text() {
+        assert!(!is_command_output("just text"));
+    }
+
+    #[test]
+    fn is_command_output_bash_tags() {
+        // bash-stdout is NOT a local-command tag
+        assert!(!is_command_output("<bash-stdout>stuff</bash-stdout>"));
+    }
+}

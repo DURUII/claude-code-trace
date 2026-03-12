@@ -1,3 +1,4 @@
+use super::taxonomy::parse_mcp_tool_name;
 use serde_json::Value;
 
 /// Unicode horizontal ellipsis used for text truncation.
@@ -39,6 +40,7 @@ pub fn tool_summary(name: &str, input: &Option<Value>) -> String {
         "TeamDelete" => summary_team_delete(fields),
         "AskUserQuestion" => summary_ask_user(fields),
         "EnterPlanMode" | "ExitPlanMode" | "EnterWorktree" | "ExitWorktree" => name.to_string(),
+        _ if name.starts_with("mcp__") => summary_mcp(name, fields),
         _ => summary_default(name, fields),
     }
 }
@@ -366,6 +368,53 @@ fn summary_ask_user(f: &serde_json::Map<String, Value>) -> String {
     "Ask user".to_string()
 }
 
+fn summary_mcp(name: &str, f: &serde_json::Map<String, Value>) -> String {
+    let tool_part = match parse_mcp_tool_name(name) {
+        Some((_, tool)) => tool.replace('_', " "),
+        None => return name.to_string(),
+    };
+
+    // Try to extract a meaningful detail from common MCP parameter names.
+    let detail_keys = [
+        "url",
+        "query",
+        "selector",
+        "expression",
+        "fileKey",
+        "nodeId",
+        "issue_key",
+        "page_url",
+        "description",
+        "prompt",
+        "name",
+        "path",
+        "file",
+        "command",
+    ];
+
+    for key in &detail_keys {
+        let v = get_str(f, key);
+        if !v.is_empty() {
+            return format!("{} - {}", tool_part, truncate(v, 40));
+        }
+    }
+
+    // Fall back to first string value.
+    if !f.is_empty() {
+        let mut keys: Vec<&String> = f.keys().collect();
+        keys.sort();
+        for k in keys {
+            if let Some(Value::String(s)) = f.get(k.as_str()) {
+                if !s.is_empty() {
+                    return format!("{} - {}", tool_part, truncate(s, 40));
+                }
+            }
+        }
+    }
+
+    tool_part
+}
+
 fn summary_default(name: &str, f: &serde_json::Map<String, Value>) -> String {
     if f.is_empty() {
         return name.to_string();
@@ -687,6 +736,70 @@ mod tests {
     fn summary_web_search_empty() {
         let input = Some(json!({}));
         assert_eq!(tool_summary("WebSearch", &input), "WebSearch");
+    }
+
+    // ---- MCP tool summary tests ----
+
+    #[test]
+    fn summary_mcp_figma_with_file_key() {
+        let input = Some(json!({"fileKey": "abc123", "nodeId": "1:2"}));
+        assert_eq!(
+            tool_summary("mcp__figma__get_design_context", &input),
+            "get design context - abc123"
+        );
+    }
+
+    #[test]
+    fn summary_mcp_chrome_devtools_with_url() {
+        let input = Some(json!({"url": "https://example.com/page"}));
+        assert_eq!(
+            tool_summary("mcp__chrome-devtools__navigate_page", &input),
+            "navigate page - https://example.com/page"
+        );
+    }
+
+    #[test]
+    fn summary_mcp_with_selector() {
+        let input = Some(json!({"selector": "#login-btn"}));
+        assert_eq!(
+            tool_summary("mcp__chrome-devtools__click", &input),
+            "click - #login-btn"
+        );
+    }
+
+    #[test]
+    fn summary_mcp_jira_with_issue_key() {
+        let input = Some(json!({"issue_key": "EC-10457"}));
+        assert_eq!(
+            tool_summary("mcp__atlassian__jira_get_issue", &input),
+            "jira get issue - EC-10457"
+        );
+    }
+
+    #[test]
+    fn summary_mcp_empty_input() {
+        let input = Some(json!({}));
+        assert_eq!(
+            tool_summary("mcp__figma__get_screenshot", &input),
+            "get screenshot"
+        );
+    }
+
+    #[test]
+    fn summary_mcp_no_input() {
+        assert_eq!(
+            tool_summary("mcp__figma__get_screenshot", &None),
+            "mcp__figma__get_screenshot"
+        );
+    }
+
+    #[test]
+    fn summary_mcp_falls_back_to_first_string() {
+        let input = Some(json!({"some_custom_param": "value123"}));
+        assert_eq!(
+            tool_summary("mcp__custom__do_thing", &input),
+            "do thing - value123"
+        );
     }
 
     #[test]

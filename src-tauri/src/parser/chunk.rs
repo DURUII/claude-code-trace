@@ -5,7 +5,7 @@ use std::collections::HashMap;
 
 use super::classify::*;
 use super::summary::tool_summary;
-use super::taxonomy::{categorize_tool_name, ToolCategory};
+use super::taxonomy::{categorize_tool_name, mcp_display_name, ToolCategory};
 
 const CONCURRENT_TASK_DURATION_THRESHOLD: i64 = 60_000;
 
@@ -275,6 +275,7 @@ fn merge_ai_buffer(buf: &[AIMsg]) -> Chunk {
                             .unwrap_or(0);
                         let summary = tool_summary(&b.tool_name, &b.tool_input);
                         let category = categorize_tool_name(&b.tool_name);
+                        let display_name = mcp_display_name(&b.tool_name);
 
                         if b.tool_name == "Task" || b.tool_name == "Agent" {
                             let info = extract_subagent_info(&b.tool_input);
@@ -294,7 +295,7 @@ fn merge_ai_buffer(buf: &[AIMsg]) -> Chunk {
                         } else {
                             items.push(DisplayItem {
                                 item_type: DisplayItemType::ToolCall,
-                                tool_name: b.tool_name.clone(),
+                                tool_name: display_name,
                                 tool_id: b.tool_id.clone(),
                                 tool_input: b.tool_input.clone(),
                                 tool_summary: summary,

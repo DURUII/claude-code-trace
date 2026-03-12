@@ -14,6 +14,7 @@ pub enum ToolCategory {
     Tool,
     Web,
     Cron,
+    Mcp,
     Other,
 }
 
@@ -41,7 +42,30 @@ pub fn categorize_tool_name(name: &str) -> ToolCategory {
         "WebFetch" | "WebSearch" => ToolCategory::Web,
         "CronCreate" | "CronDelete" | "CronList" => ToolCategory::Cron,
 
+        _ if name.starts_with("mcp__") => ToolCategory::Mcp,
         _ => ToolCategory::Other,
+    }
+}
+
+/// Parses an MCP tool name like "mcp__server-name__tool_name" into (server, tool).
+/// Returns None if the name doesn't match the mcp__ prefix pattern.
+pub fn parse_mcp_tool_name(name: &str) -> Option<(&str, &str)> {
+    let rest = name.strip_prefix("mcp__")?;
+    let sep = rest.find("__")?;
+    let server = &rest[..sep];
+    let tool = &rest[sep + 2..];
+    if server.is_empty() || tool.is_empty() {
+        return None;
+    }
+    Some((server, tool))
+}
+
+/// Returns a human-friendly display name for an MCP tool.
+/// e.g. "mcp__chrome-devtools__take_screenshot" -> "MCP chrome-devtools"
+pub fn mcp_display_name(name: &str) -> String {
+    match parse_mcp_tool_name(name) {
+        Some((server, _)) => format!("MCP {server}"),
+        None => name.to_string(),
     }
 }
 
@@ -103,6 +127,54 @@ mod tests {
         assert_eq!(categorize_tool_name("CronCreate"), ToolCategory::Cron);
         assert_eq!(categorize_tool_name("CronDelete"), ToolCategory::Cron);
         assert_eq!(categorize_tool_name("CronList"), ToolCategory::Cron);
+    }
+
+    #[test]
+    fn mcp_tools() {
+        assert_eq!(
+            categorize_tool_name("mcp__figma__get_design_context"),
+            ToolCategory::Mcp
+        );
+        assert_eq!(
+            categorize_tool_name("mcp__chrome-devtools__take_screenshot"),
+            ToolCategory::Mcp
+        );
+        assert_eq!(
+            categorize_tool_name("mcp__atlassian__jira_get_issue"),
+            ToolCategory::Mcp
+        );
+    }
+
+    #[test]
+    fn parse_mcp_tool_name_valid() {
+        assert_eq!(
+            parse_mcp_tool_name("mcp__figma__get_design_context"),
+            Some(("figma", "get_design_context"))
+        );
+        assert_eq!(
+            parse_mcp_tool_name("mcp__chrome-devtools__take_screenshot"),
+            Some(("chrome-devtools", "take_screenshot"))
+        );
+    }
+
+    #[test]
+    fn parse_mcp_tool_name_invalid() {
+        assert_eq!(parse_mcp_tool_name("Read"), None);
+        assert_eq!(parse_mcp_tool_name("mcp__"), None);
+        assert_eq!(parse_mcp_tool_name("mcp____tool"), None);
+    }
+
+    #[test]
+    fn mcp_display_name_formats() {
+        assert_eq!(
+            mcp_display_name("mcp__figma__get_design_context"),
+            "MCP figma"
+        );
+        assert_eq!(
+            mcp_display_name("mcp__chrome-devtools__take_screenshot"),
+            "MCP chrome-devtools"
+        );
+        assert_eq!(mcp_display_name("Read"), "Read");
     }
 
     #[test]

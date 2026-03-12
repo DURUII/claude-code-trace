@@ -160,6 +160,7 @@ fn tool_category_str(c: &ToolCategory) -> &'static str {
         ToolCategory::Tool => "Tool",
         ToolCategory::Web => "Web",
         ToolCategory::Cron => "Cron",
+        ToolCategory::Mcp => "Mcp",
         ToolCategory::Other => "Other",
     }
 }

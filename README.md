@@ -2,7 +2,7 @@
 
 A desktop GUI for reading Claude Code session JSONL files. Built with [Tauri v2](https://v2.tauri.app/) (Rust backend + React frontend).
 
-Reads session logs from `~/.claude/` and renders them as a scrollable conversation with expandable tool calls, token counts, and live tailing. GUI port of [tail-claude](https://github.com/kylesnowschwartz/tail-claude).
+Reads session logs from `~/.claude/` and renders them as a scrollable conversation with expandable tool calls, token counts, and live tailing. Inspired by [tail-claude](https://github.com/kylesnowschwartz/tail-claude).
 
 ## Requirements
 
@@ -15,7 +15,7 @@ Reads session logs from `~/.claude/` and renders them as a scrollable conversati
 Build from source:
 
 ```bash
-git clone git@github.com:kylesnowschwartz/tail-claude-gui.git
+git clone git@github.com:delexw/tail-claude-gui.git
 cd tail-claude-gui
 npm install
 npm run tauri build
@@ -28,6 +28,8 @@ The built app will be in `src-tauri/target/release/bundle/`.
 Launch the app to open the session picker. It auto-discovers all sessions from `~/.claude/projects/`.
 
 Select a session to view the conversation. Click messages to expand tool calls, or open the detail view for full inspection.
+
+MCP (Model Context Protocol) tool calls are automatically detected and displayed with human-friendly names. For example, `mcp__chrome-devtools__take_screenshot` renders as **MCP chrome-devtools** with the summary "take screenshot". Supported MCP servers include chrome-devtools, figma, atlassian, buildkite, cloudflare, and any other server following the `mcp__<server>__<tool>` naming convention.
 
 ### Keybindings
 
@@ -70,38 +72,26 @@ Select a session to view the conversation. Click messages to expand tool calls, 
 
 ```bash
 npm install
-npm run tauri dev    # launch dev mode with hot reload
+npm run tauri dev        # dev mode with hot reload
+npm run tauri build      # production build
 ```
 
-### Project structure
-
-```
-src/                  # React frontend (TypeScript)
-  components/         # SessionPicker, MessageList, MessageDetail, TeamBoard, DebugViewer
-  hooks/              # useSession, usePicker
-  lib/                # format utilities, theme
-  types/              # TypeScript type definitions
-src-tauri/            # Rust backend
-  src/
-    parser/           # JSONL parsing (entry, classify, chunk, session, subagent, team, etc.)
-    commands/         # Tauri commands (session, picker, git, debug)
-    convert.rs        # Chunk → frontend message conversion
-    watcher.rs        # File watching with debounce
-    state.rs          # Shared app state
-```
-
-### Commands
+### Check & Test
 
 ```bash
-npm run tauri dev     # dev mode with hot reload
-npm run tauri build   # production build
-cargo check --manifest-path src-tauri/Cargo.toml   # check Rust compilation
-npx tsc --noEmit      # check TypeScript types
+npm run check            # run all checks at once
+npx vitest run           # frontend tests
+cargo test --manifest-path src-tauri/Cargo.toml    # Rust tests
+npx tsc --noEmit         # TypeScript type check
+npx oxlint               # JS/TS lint
+npx oxfmt                # JS/TS format
+cargo clippy --manifest-path src-tauri/Cargo.toml  # Rust lint
+cargo fmt --manifest-path src-tauri/Cargo.toml     # Rust format
 ```
 
 ## Attribution
 
-Parsing heuristics ported from [tail-claude](https://github.com/kylesnowschwartz/tail-claude), which itself ported from [claude-devtools](https://github.com/matt1398/claude-devtools).
+Parsing heuristics inspired by [tail-claude](https://github.com/kylesnowschwartz/tail-claude) and [claude-devtools](https://github.com/matt1398/claude-devtools).
 
 ## License
 

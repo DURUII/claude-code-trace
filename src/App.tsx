@@ -177,8 +177,12 @@ export function App() {
 
   // Sidebar-focused shortcuts (override main shortcuts when sidebar has focus)
   if (sidebarFocused) {
-    keyMap["j"] = () => setSidebarHighlight((i) => Math.min(i + 1, projectKeys.length - 1));
-    keyMap["k"] = () => setSidebarHighlight((i) => Math.max(i - 1, 0));
+    const sidebarDown = () => setSidebarHighlight((i) => Math.min(i + 1, projectKeys.length - 1));
+    const sidebarUp = () => setSidebarHighlight((i) => Math.max(i - 1, 0));
+    keyMap["j"] = sidebarDown;
+    keyMap["ArrowDown"] = sidebarDown;
+    keyMap["k"] = sidebarUp;
+    keyMap["ArrowUp"] = sidebarUp;
     keyMap["Enter"] = () => selectProjectByIndex(sidebarHighlight);
     keyMap["Escape"] = () => setSidebarFocused(false);
     keyMap["l"] = () => setSidebarFocused(false);
@@ -186,9 +190,14 @@ export function App() {
     keyMap["?"] = toggleKeybinds;
   } else {
     switch (view) {
-      case "list":
-        keyMap["j"] = () => setSelectedMessage((i) => Math.max(i - 1, 0));
-        keyMap["k"] = () => setSelectedMessage((i) => Math.min(i + 1, session.messages.length - 1));
+      case "list": {
+        const listDown = () => setSelectedMessage((i) => Math.max(i - 1, 0));
+        const listUp = () =>
+          setSelectedMessage((i) => Math.min(i + 1, session.messages.length - 1));
+        keyMap["j"] = listDown;
+        keyMap["ArrowDown"] = listDown;
+        keyMap["k"] = listUp;
+        keyMap["ArrowUp"] = listUp;
         keyMap["G"] = jumpToTop;
         keyMap["g"] = jumpToBottom;
         keyMap["Tab"] = () => toggleMessage(selectedMessage);
@@ -206,14 +215,19 @@ export function App() {
         keyMap["h"] = () => setSidebarFocused(true);
         keyMap["ArrowLeft"] = () => setSidebarFocused(true);
         break;
+      }
       case "detail":
         // j/k/Tab/Enter/q/Escape handled by MessageDetail's own useKeyboard
         keyMap["?"] = toggleKeybinds;
         break;
-      case "picker":
-        keyMap["j"] = () =>
+      case "picker": {
+        const pickerDown = () =>
           setPickerSelectedIndex((i) => Math.min(i + 1, picker.sessions.length - 1));
-        keyMap["k"] = () => setPickerSelectedIndex((i) => Math.max(i - 1, 0));
+        const pickerUp = () => setPickerSelectedIndex((i) => Math.max(i - 1, 0));
+        keyMap["j"] = pickerDown;
+        keyMap["ArrowDown"] = pickerDown;
+        keyMap["k"] = pickerUp;
+        keyMap["ArrowUp"] = pickerUp;
         keyMap["Enter"] = () => {
           if (picker.sessions[pickerSelectedIndex])
             handleSelectSession(picker.sessions[pickerSelectedIndex]);
@@ -224,6 +238,7 @@ export function App() {
         keyMap["h"] = () => setSidebarFocused(true);
         keyMap["ArrowLeft"] = () => setSidebarFocused(true);
         break;
+      }
       case "team":
         keyMap["q"] = () => setView("list");
         keyMap["Escape"] = () => setView("list");

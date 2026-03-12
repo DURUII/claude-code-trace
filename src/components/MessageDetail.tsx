@@ -156,8 +156,8 @@ export function MessageDetail({ message: msg, onBack }: MessageDetailProps) {
   // Single keyboard handler for all columns
   const detailKeyMap: Record<string, () => void> = {};
 
-  // Navigation: j/k/Tab/Enter dispatch to the focused column
-  detailKeyMap["j"] = () => {
+  // Navigation: j/k/ArrowDown/ArrowUp/Tab/Enter dispatch to the focused column
+  const moveDown = () => {
     if (focusedColumn === 0) {
       setSelectedItem((i) => Math.min(i + 1, msg.items.length - 1));
     } else {
@@ -165,7 +165,7 @@ export function MessageDetail({ message: msg, onBack }: MessageDetailProps) {
       nav?.moveDown();
     }
   };
-  detailKeyMap["k"] = () => {
+  const moveUp = () => {
     if (focusedColumn === 0) {
       setSelectedItem((i) => Math.max(i - 1, 0));
     } else {
@@ -173,6 +173,10 @@ export function MessageDetail({ message: msg, onBack }: MessageDetailProps) {
       nav?.moveUp();
     }
   };
+  detailKeyMap["j"] = moveDown;
+  detailKeyMap["ArrowDown"] = moveDown;
+  detailKeyMap["k"] = moveUp;
+  detailKeyMap["ArrowUp"] = moveUp;
   detailKeyMap["Tab"] = () => {
     if (focusedColumn === 0) {
       const item = msg.items[selectedItem];

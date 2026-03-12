@@ -60,7 +60,7 @@ fn summary_write(f: &serde_json::Map<String, Value>) -> String {
     let content = get_str(f, "content");
     if !content.is_empty() {
         let lines = content.split('\n').count();
-        return format!("{} - {} lines", short, lines);
+        return format!("{short} - {lines} lines");
     }
     short
 }
@@ -79,9 +79,9 @@ fn summary_edit(f: &serde_json::Map<String, Value>) -> String {
         let new_lines = new_str.split('\n').count();
         if old_lines == new_lines {
             let s = if old_lines > 1 { "s" } else { "" };
-            return format!("{} - {} line{}", short, old_lines, s);
+            return format!("{short} - {old_lines} line{s}");
         }
-        return format!("{} - {} -> {} lines", short, old_lines, new_lines);
+        return format!("{short} - {old_lines} -> {new_lines} lines");
     }
     short
 }
@@ -91,7 +91,7 @@ fn summary_bash(f: &serde_json::Map<String, Value>) -> String {
     let cmd = get_str(f, "command");
 
     if !desc.is_empty() && !cmd.is_empty() {
-        return truncate(&format!("{}: {}", desc, cmd), 60);
+        return truncate(&format!("{desc}: {cmd}"), 60);
     }
     if !desc.is_empty() {
         return truncate(desc, 60);
@@ -111,7 +111,7 @@ fn summary_grep(f: &serde_json::Map<String, Value>) -> String {
 
     let glob = get_str(f, "glob");
     if !glob.is_empty() {
-        return format!("{} in {}", pat_str, glob);
+        return format!("{pat_str} in {glob}");
     }
     let p = get_str(f, "path");
     if !p.is_empty() {
@@ -142,7 +142,7 @@ fn summary_task(f: &serde_json::Map<String, Value>) -> String {
     let sub_type = get_str(f, "subagentType");
 
     let type_prefix = if !sub_type.is_empty() {
-        format!("{} - ", sub_type)
+        format!("{sub_type} - ")
     } else {
         String::new()
     };
@@ -183,7 +183,7 @@ fn summary_web_fetch(f: &serde_json::Map<String, Value>) -> String {
             None => host_port,
         };
         if !hostname.is_empty() {
-            return truncate(&format!("{}{}", hostname, path), 50);
+            return truncate(&format!("{hostname}{path}"), 50);
         }
     }
     truncate(raw_url, 50)
@@ -215,7 +215,7 @@ fn summary_notebook_edit(f: &serde_json::Map<String, Value>) -> String {
     let base = file_base(nb_path);
     let mode = get_str(f, "edit_mode");
     if !mode.is_empty() {
-        return format!("{} - {}", mode, base);
+        return format!("{mode} - {base}");
     }
     base
 }
@@ -232,7 +232,7 @@ fn summary_task_update(f: &serde_json::Map<String, Value>) -> String {
     let mut parts = Vec::new();
     let id = get_str(f, "taskId");
     if !id.is_empty() {
-        parts.push(format!("#{}", id));
+        parts.push(format!("#{id}"));
     }
     let status = get_str(f, "status");
     if !status.is_empty() {
@@ -240,7 +240,7 @@ fn summary_task_update(f: &serde_json::Map<String, Value>) -> String {
     }
     let owner = get_str(f, "owner");
     if !owner.is_empty() {
-        parts.push(format!("-> {}", owner));
+        parts.push(format!("-> {owner}"));
     }
     if !parts.is_empty() {
         return parts.join(" ");
@@ -254,7 +254,7 @@ fn summary_send_message(f: &serde_json::Map<String, Value>) -> String {
     let summary = get_str(f, "summary");
 
     if msg_type == "shutdown_request" && !recipient.is_empty() {
-        return format!("Shutdown {}", recipient);
+        return format!("Shutdown {recipient}");
     }
     if msg_type == "shutdown_response" {
         return "Shutdown response".to_string();
@@ -350,7 +350,7 @@ pub fn truncate(s: &str, max_len: usize) -> String {
         return s;
     }
     let truncated: String = chars[..max_len - 1].iter().collect();
-    format!("{}{}", truncated, ELLIPSIS)
+    format!("{truncated}{ELLIPSIS}")
 }
 
 /// TruncateWord shortens a string to max_len runes, breaking at the nearest
@@ -361,15 +361,15 @@ pub fn truncate_word(s: &str, max_len: usize) -> String {
         return s.to_string();
     }
     let cutoff = max_len - 1;
-    let search_start = if cutoff > 20 { cutoff - 20 } else { 0 };
+    let search_start = cutoff.saturating_sub(20);
     for i in (search_start..=cutoff).rev() {
         if chars[i] == ' ' {
             let truncated: String = chars[..i].iter().collect();
-            return format!("{}{}", truncated, ELLIPSIS);
+            return format!("{truncated}{ELLIPSIS}");
         }
     }
     let truncated: String = chars[..cutoff].iter().collect();
-    format!("{}{}", truncated, ELLIPSIS)
+    format!("{truncated}{ELLIPSIS}")
 }
 
 #[cfg(test)]

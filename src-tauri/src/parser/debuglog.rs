@@ -56,11 +56,11 @@ pub fn read_debug_log(path: &str) -> Result<(Vec<DebugEntry>, u64), String> {
 }
 
 fn read_debug_log_incremental(path: &str, offset: u64) -> Result<(Vec<DebugEntry>, u64), String> {
-    let f = fs::File::open(path).map_err(|e| format!("opening {}: {}", path, e))?;
+    let f = fs::File::open(path).map_err(|e| format!("opening {path}: {e}"))?;
     let mut reader = BufReader::new(f);
     reader
         .seek(SeekFrom::Start(offset))
-        .map_err(|e| format!("seeking: {}", e))?;
+        .map_err(|e| format!("seeking: {e}"))?;
 
     let mut entries = Vec::new();
     let mut bytes_read = offset;
@@ -75,7 +75,7 @@ fn read_debug_log_incremental(path: &str, offset: u64) -> Result<(Vec<DebugEntry
         line.clear();
         let n = reader
             .read_line(&mut line)
-            .map_err(|e| format!("reading: {}", e))?;
+            .map_err(|e| format!("reading: {e}"))?;
         if n == 0 {
             break;
         }
@@ -169,7 +169,7 @@ pub fn debug_log_path(session_path: &str) -> String {
     let debug_path = home
         .join(".claude")
         .join("debug")
-        .join(format!("{}.txt", base));
+        .join(format!("{base}.txt"));
     if debug_path.exists() {
         debug_path.to_string_lossy().to_string()
     } else {

@@ -20,7 +20,7 @@ pub async fn load_session(path: String) -> Result<LoadResult, String> {
     let chunks = build_chunks(&classified);
 
     if chunks.is_empty() {
-        return Err(format!("session {} has no messages", path));
+        return Err(format!("session {path} has no messages"));
     }
 
     // Discover and link subagent execution traces.
@@ -28,7 +28,7 @@ pub async fn load_session(path: String) -> Result<LoadResult, String> {
 
     let mut ongoing = is_ongoing(&chunks);
     if !ongoing {
-        ongoing = all_procs.iter().any(|p| is_subagent_ongoing(p));
+        ongoing = all_procs.iter().any(is_subagent_ongoing);
     }
     if ongoing {
         if let Ok(info) = std::fs::metadata(&path) {
@@ -104,11 +104,9 @@ pub async fn get_project_dirs() -> Result<Vec<String>, String> {
     }
     let mut dirs = Vec::new();
     let entries = std::fs::read_dir(&projects_dir).map_err(|e| e.to_string())?;
-    for entry in entries {
-        if let Ok(entry) = entry {
-            if entry.file_type().map(|t| t.is_dir()).unwrap_or(false) {
-                dirs.push(entry.path().to_string_lossy().to_string());
-            }
+    for entry in entries.flatten() {
+        if entry.file_type().map(|t| t.is_dir()).unwrap_or(false) {
+            dirs.push(entry.path().to_string_lossy().to_string());
         }
     }
     Ok(dirs)

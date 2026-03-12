@@ -4,7 +4,7 @@
 fn main() {
     // Set a panic hook that prints the panic before tao swallows it
     std::panic::set_hook(Box::new(|info| {
-        eprintln!("PANIC: {}", info);
+        eprintln!("PANIC: {info}");
         if let Some(loc) = info.location() {
             eprintln!("  at {}:{}:{}", loc.file(), loc.line(), loc.column());
         }

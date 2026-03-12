@@ -73,7 +73,7 @@ fn extract_command_display(s: &str) -> Option<String> {
     if let Some(am) = RE_COMMAND_ARGS.captures(s) {
         let args = am.get(1).map(|m| m.as_str().trim()).unwrap_or("");
         if !args.is_empty() {
-            return Some(format!("{} {}", name, args));
+            return Some(format!("{name} {args}"));
         }
     }
     Some(name)

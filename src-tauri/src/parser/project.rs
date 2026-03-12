@@ -98,7 +98,7 @@ fn repo_root_from_git_file(repo_dir: &Path, git_file: &Path) -> Option<PathBuf> 
         std::path::MAIN_SEPARATOR,
         std::path::MAIN_SEPARATOR
     );
-    if let Some(idx) = git_dir_str.find(&format!(".git{}", marker)) {
+    if let Some(idx) = git_dir_str.find(&format!(".git{marker}")) {
         let root = &git_dir_str[..idx];
         if !root.is_empty() {
             return Some(PathBuf::from(
@@ -121,7 +121,7 @@ fn trim_branch_suffix(name: &str, git_branch: &str) -> String {
     }
 
     for sep in &["-", "_"] {
-        let suffix = format!("{}{}", sep, branch_token);
+        let suffix = format!("{sep}{branch_token}");
         if name.to_lowercase().ends_with(&suffix.to_lowercase()) {
             let base = name[..name.len() - suffix.len()].trim_end_matches(&['-', '_'][..]);
             if !base.is_empty() {

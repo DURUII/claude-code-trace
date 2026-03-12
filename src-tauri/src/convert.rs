@@ -323,7 +323,7 @@ pub fn chunks_to_messages(
                 }
 
                 let lo = find_last_output(&c.items);
-                let frontend_lo = lo.as_ref().map(|l| convert_last_output(l));
+                let frontend_lo = lo.as_ref().map(convert_last_output);
 
                 msgs.push(DisplayMessage {
                     role: "claude".to_string(),

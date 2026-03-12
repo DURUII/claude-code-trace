@@ -239,7 +239,7 @@ fn is_warmup_agent(path: &str) -> bool {
 fn read_subagent_session(path: &str) -> Result<(Vec<Chunk>, String, String), String> {
     use super::patterns::{TEAMMATE_COLOR_RE, TEAMMATE_SUMMARY_RE};
 
-    let f = fs::File::open(path).map_err(|e| format!("opening {}: {}", path, e))?;
+    let f = fs::File::open(path).map_err(|e| format!("opening {path}: {e}"))?;
     let reader = BufReader::new(f);
 
     let mut msgs = Vec::new();
@@ -313,7 +313,7 @@ fn aggregate_usage(chunks: &[Chunk]) -> Usage {
 
 /// Link subagents to parent Task tool calls. Returns toolID -> color map.
 pub fn link_subagents(
-    processes: &mut Vec<SubagentProcess>,
+    processes: &mut [SubagentProcess],
     parent_chunks: &[Chunk],
     parent_session_path: &str,
 ) -> HashMap<String, String> {
@@ -345,10 +345,9 @@ pub fn link_subagents(
             continue;
         }
         for item in &c.items {
-            if item.item_type == DisplayItemType::Subagent {
-                task_items.push(item);
-            } else if item.item_type == DisplayItemType::ToolCall
-                && linked_tool_ids.contains(item.tool_id.as_str())
+            if item.item_type == DisplayItemType::Subagent
+                || (item.item_type == DisplayItemType::ToolCall
+                    && linked_tool_ids.contains(item.tool_id.as_str()))
             {
                 task_items.push(item);
             }
@@ -458,7 +457,7 @@ pub fn link_subagents(
                     let team_name = map.get("team_name").and_then(|v| v.as_str()).unwrap_or("");
                     let agent_name = map.get("name").and_then(|v| v.as_str()).unwrap_or("");
                     if !team_name.is_empty() && !agent_name.is_empty() {
-                        proc.id = format!("{}@{}", agent_name, team_name);
+                        proc.id = format!("{agent_name}@{team_name}");
                     }
                 }
             }
@@ -675,7 +674,7 @@ pub fn discover_team_sessions(
             .unwrap_or_else(Utc::now);
 
         procs.push(SubagentProcess {
-            id: format!("{}@{}", agent_name, team_name),
+            id: format!("{agent_name}@{team_name}"),
             file_path,
             file_mod_time,
             chunks,

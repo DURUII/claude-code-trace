@@ -62,11 +62,11 @@ pub fn read_session_incremental(
     path: &str,
     offset: u64,
 ) -> Result<(Vec<ClassifiedMsg>, u64, u64), String> {
-    let f = fs::File::open(path).map_err(|e| format!("opening {}: {}", path, e))?;
+    let f = fs::File::open(path).map_err(|e| format!("opening {path}: {e}"))?;
     let mut reader = BufReader::new(f);
     reader
         .seek(SeekFrom::Start(offset))
-        .map_err(|e| format!("seeking: {}", e))?;
+        .map_err(|e| format!("seeking: {e}"))?;
 
     let mut msgs = Vec::new();
     let mut bytes_read: u64 = 0;
@@ -76,7 +76,7 @@ pub fn read_session_incremental(
         line.clear();
         let n = reader
             .read_line(&mut line)
-            .map_err(|e| format!("reading: {}", e))?;
+            .map_err(|e| format!("reading: {e}"))?;
         if n == 0 {
             break;
         }
@@ -111,11 +111,7 @@ pub fn project_dir_for_path(abs_path: &str) -> Result<String, String> {
 }
 
 fn encode_path(abs_path: &str) -> String {
-    abs_path
-        .replace(std::path::MAIN_SEPARATOR, "-")
-        .replace('/', "-")
-        .replace('.', "-")
-        .replace('_', "-")
+    abs_path.replace([std::path::MAIN_SEPARATOR, '/', '.', '_'], "-")
 }
 
 /// Return the projects directory for the current working directory.
@@ -139,8 +135,7 @@ fn is_session_file(name: &str, entry: &fs::DirEntry) -> bool {
 
 /// Discover all session .jsonl files in a project directory.
 pub fn discover_project_sessions(project_dir: &str) -> Result<Vec<SessionInfo>, String> {
-    let entries =
-        fs::read_dir(project_dir).map_err(|e| format!("reading {}: {}", project_dir, e))?;
+    let entries = fs::read_dir(project_dir).map_err(|e| format!("reading {project_dir}: {e}"))?;
 
     let mut sessions = Vec::new();
 
@@ -159,7 +154,7 @@ pub fn discover_project_sessions(project_dir: &str) -> Result<Vec<SessionInfo>, 
             .as_ref()
             .ok()
             .and_then(|m| m.modified().ok())
-            .map(|t| DateTime::<Utc>::from(t))
+            .map(DateTime::<Utc>::from)
             .unwrap_or_else(Utc::now);
 
         let path = entry.path().to_string_lossy().to_string();
@@ -267,8 +262,7 @@ pub fn discover_project_sessions_with_scan<F>(
 where
     F: Fn(&str, std::time::SystemTime, u64) -> Option<SessionInfo>,
 {
-    let entries =
-        fs::read_dir(project_dir).map_err(|e| format!("reading {}: {}", project_dir, e))?;
+    let entries = fs::read_dir(project_dir).map_err(|e| format!("reading {project_dir}: {e}"))?;
 
     let mut sessions = Vec::new();
 

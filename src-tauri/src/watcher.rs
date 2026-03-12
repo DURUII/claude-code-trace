@@ -143,7 +143,7 @@ pub fn start_session_watcher(
 
                     let mut ongoing = is_ongoing(&chunks);
                     if !ongoing {
-                        ongoing = all_procs.iter().any(|p| is_subagent_ongoing(p));
+                        ongoing = all_procs.iter().any(is_subagent_ongoing);
                     }
 
                     let teams = reconstruct_teams(&chunks, &all_procs);

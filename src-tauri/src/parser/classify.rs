@@ -29,7 +29,7 @@ pub struct ToolCall {
 }
 
 /// ContentBlock represents a single content block from a message.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Default)]
 pub struct ContentBlock {
     pub block_type: String,
     pub text: String,
@@ -40,22 +40,6 @@ pub struct ContentBlock {
     pub is_error: bool,
     pub teammate_id: String,
     pub teammate_color: String,
-}
-
-impl Default for ContentBlock {
-    fn default() -> Self {
-        Self {
-            block_type: String::new(),
-            text: String::new(),
-            tool_id: String::new(),
-            tool_name: String::new(),
-            tool_input: None,
-            content: String::new(),
-            is_error: false,
-            teammate_id: String::new(),
-            teammate_color: String::new(),
-        }
-    }
 }
 
 /// Classified message types.

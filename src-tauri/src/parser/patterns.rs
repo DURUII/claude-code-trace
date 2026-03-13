@@ -48,6 +48,10 @@ lazy_static! {
     pub static ref TEAMMATE_PROTOCOL_RE: Regex =
         Regex::new(r#"^\s*\{\s*"type"\s*:\s*"(idle_notification|shutdown_approved|shutdown_request|teammate_terminated|task_assignment)""#).unwrap();
 
+    // Persisted output regex - extracts file path from large tool outputs saved to disk.
+    pub static ref RE_PERSISTED_OUTPUT_PATH: Regex =
+        Regex::new(r"(?m)Full output saved to:\s*(.+)$").unwrap();
+
     // Noise tag patterns - system-generated metadata stripped from display content.
     pub static ref NOISE_TAG_PATTERNS: Vec<Regex> = vec![
         Regex::new(r"(?is)<local-command-caveat>.*?</local-command-caveat>").unwrap(),

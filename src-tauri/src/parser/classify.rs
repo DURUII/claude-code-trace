@@ -518,7 +518,8 @@ fn extract_meta_blocks(content: &Option<Value>, text_fallback: &str) -> Vec<Cont
                 .and_then(|v| v.as_str())
                 .unwrap_or("")
                 .to_string();
-            let content = stringify_content(&b.get("content").cloned());
+            let raw_content = stringify_content(&b.get("content").cloned());
+            let content = resolve_persisted_output(&raw_content);
             let is_error = b.get("is_error").and_then(|v| v.as_bool()).unwrap_or(false);
             Some(ContentBlock {
                 block_type: "tool_result".to_string(),

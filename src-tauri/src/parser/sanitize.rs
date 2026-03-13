@@ -1,5 +1,6 @@
 use regex::Regex;
 use serde_json::Value;
+use std::fs;
 
 use super::patterns::*;
 
@@ -168,6 +169,25 @@ pub fn stringify_content(raw: &Option<Value>) -> String {
     val.to_string()
 }
 
+/// Detects `<persisted-output>` markers in tool result content and resolves
+/// the file reference by reading the persisted file from disk.
+/// Returns the full file content if found, otherwise the original string.
+pub fn resolve_persisted_output(s: &str) -> String {
+    if !s.contains("<persisted-output>") {
+        return s.to_string();
+    }
+    if let Some(caps) = RE_PERSISTED_OUTPUT_PATH.captures(s) {
+        if let Some(m) = caps.get(1) {
+            let path = m.as_str().trim();
+            if let Ok(content) = fs::read_to_string(path) {
+                return content;
+            }
+        }
+    }
+    // File not found or no path match — return original content as fallback.
+    s.to_string()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -320,6 +340,36 @@ mod tests {
         let result = stringify_content(&v);
         assert!(result.contains("key"));
         assert!(result.contains("value"));
+    }
+
+    // ---- resolve_persisted_output tests ----
+
+    #[test]
+    fn resolve_persisted_output_returns_original_when_no_tag() {
+        assert_eq!(resolve_persisted_output("plain text"), "plain text");
+    }
+
+    #[test]
+    fn resolve_persisted_output_returns_original_when_file_missing() {
+        let s = "<persisted-output>\nOutput too large (100KB). Full output saved to: /tmp/nonexistent_file_12345.txt\n\nPreview:\nsome preview\n</persisted-output>";
+        let result = resolve_persisted_output(s);
+        assert_eq!(result, s);
+    }
+
+    #[test]
+    fn resolve_persisted_output_reads_file_when_exists() {
+        let dir = std::env::temp_dir();
+        let path = dir.join("test_persisted_output.txt");
+        std::fs::write(&path, "full file content here").unwrap();
+
+        let s = format!(
+            "<persisted-output>\nOutput too large (100KB). Full output saved to: {}\n\nPreview:\ntruncated...\n</persisted-output>",
+            path.display()
+        );
+        let result = resolve_persisted_output(&s);
+        assert_eq!(result, "full file content here");
+
+        std::fs::remove_file(&path).ok();
     }
 
     // ---- extract_command_output tests ----

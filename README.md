@@ -32,7 +32,11 @@ Grab the latest release from [Releases](https://github.com/delexw/tail-claude-gu
 | Linux    | `.deb`, `.rpm`, `.AppImage`     |
 | Windows  | `.msi`, `.exe` (NSIS installer) |
 
-> **macOS:** The app is unsigned. On first launch, right-click > Open > Open to bypass Gatekeeper.
+> **macOS:** The app is unsigned. After downloading, remove the quarantine attribute:
+>
+> ```bash
+> xattr -cr path/to/tail-claude-gui.app
+> ```
 
 ### Build from source
 

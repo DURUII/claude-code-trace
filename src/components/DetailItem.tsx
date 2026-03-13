@@ -1,11 +1,23 @@
 import { useState } from "react";
-import { Claude } from "@thesvg/react";
 import ReactMarkdown from "react-markdown";
 import type { DisplayItem } from "../types";
 import { formatTokens, formatDuration, formatJson, firstLine, truncate } from "../lib/format";
-import { getTeamColor, toolCategoryIcons } from "../lib/theme";
+import { getTeamColor } from "../lib/theme";
 import { StatsBar, useSubagentStats } from "./StatsBar";
 import { PopoutModal } from "./PopoutModal";
+import {
+  toolCategoryIcons,
+  ClaudeIcon,
+  ThinkingIcon,
+  OutputIcon,
+  WarningIcon,
+  HookIcon,
+  DefaultItemIcon,
+  ForwardIcon,
+  PopoutIcon,
+  ChevronIcon,
+  PanelChevronIcon,
+} from "./Icons";
 
 interface DetailItemProps {
   item: DisplayItem;
@@ -66,7 +78,7 @@ export function DetailItem({
           className={`detail-item__chevron${isExpanded ? " detail-item__chevron--expanded" : ""}${hasAgentMessages ? " detail-item__chevron--panel" : ""}`}
           style={hasAgentMessages && teamClr ? { color: teamClr } : undefined}
         >
-          {hasAgentMessages ? "\u25A8" : "\u25B6"}
+          {hasAgentMessages ? <PanelChevronIcon /> : <ChevronIcon />}
         </span>
         <span className="detail-item__icon">{icon}</span>
         <span className="detail-item__name" style={teamClr ? { color: teamClr } : undefined}>
@@ -96,7 +108,7 @@ export function DetailItem({
                 }
               }}
             >
-              Detail {"\u2192"}
+              Detail <ForwardIcon />
             </button>
           )}
           {isExpanded && (
@@ -108,7 +120,7 @@ export function DetailItem({
               }}
               title="Pop out to larger view"
             >
-              {"\u2197"}
+              <PopoutIcon />
             </button>
           )}
         </span>
@@ -262,19 +274,23 @@ function DetailItemBody({ item }: { item: DisplayItem }) {
 export function getItemIcon(item: DisplayItem): React.ReactNode {
   switch (item.item_type) {
     case "Thinking":
-      return "\u{1F4A1}";
+      return <ThinkingIcon />;
     case "Output":
-      return "\u{1F4AC}";
+      return <OutputIcon />;
     case "ToolCall":
-      return item.tool_error ? "\u26A0" : (toolCategoryIcons[item.tool_category] ?? "\u{1F527}");
+      return item.tool_error ? (
+        <WarningIcon />
+      ) : (
+        (toolCategoryIcons[item.tool_category] ?? toolCategoryIcons.Other)
+      );
     case "Subagent":
-      return <Claude className="detail-item__claude-icon" />;
+      return <ClaudeIcon className="detail-item__claude-icon" />;
     case "TeammateMessage":
-      return <Claude className="detail-item__claude-icon" />;
+      return <ClaudeIcon className="detail-item__claude-icon" />;
     case "HookEvent":
-      return "\u{1FA9D}";
+      return <HookIcon />;
     default:
-      return "\u2022";
+      return <DefaultItemIcon />;
   }
 }
 

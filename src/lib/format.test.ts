@@ -134,23 +134,23 @@ describe("estimateCost", () => {
 // ---------------------------------------------------------------------------
 describe("formatCost", () => {
   it("always formats with 2 decimal places", () => {
-    expect(formatCost(1.23)).toBe("$1.23");
-    expect(formatCost(1.0)).toBe("$1.00");
-    expect(formatCost(12.5)).toBe("$12.50");
-    expect(formatCost(100)).toBe("$100.00");
-    expect(formatCost(0.05)).toBe("$0.05");
-    expect(formatCost(0.01)).toBe("$0.01");
-    expect(formatCost(0.999)).toBe("$1.00");
-    expect(formatCost(0.005)).toBe("$0.01");
-    expect(formatCost(0.001)).toBe("$0.00");
-    expect(formatCost(0)).toBe("$0.00");
+    expect(formatCost(1.23)).toBe("1.23");
+    expect(formatCost(1.0)).toBe("1.00");
+    expect(formatCost(12.5)).toBe("12.50");
+    expect(formatCost(100)).toBe("100.00");
+    expect(formatCost(0.05)).toBe("0.05");
+    expect(formatCost(0.01)).toBe("0.01");
+    expect(formatCost(0.999)).toBe("1.00");
+    expect(formatCost(0.005)).toBe("0.01");
+    expect(formatCost(0.001)).toBe("0.00");
+    expect(formatCost(0)).toBe("0.00");
   });
 
   it("rounds correctly", () => {
-    expect(formatCost(1.235)).toBe("$1.24");
-    expect(formatCost(1.234)).toBe("$1.23");
-    expect(formatCost(0.0099)).toBe("$0.01");
-    expect(formatCost(0.0049)).toBe("$0.00");
+    expect(formatCost(1.235)).toBe("1.24");
+    expect(formatCost(1.234)).toBe("1.23");
+    expect(formatCost(0.0099)).toBe("0.01");
+    expect(formatCost(0.0049)).toBe("0.00");
   });
 });
 

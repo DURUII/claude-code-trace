@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import type { DisplayMessage, SessionMeta, SessionTotals, GitInfo } from "../types";
 import { shortPath, shortMode, contextPercent, formatTokens, formatCost } from "../lib/format";
 import { getContextColor, spinnerFrames } from "../lib/theme";
+import { TokensIcon, CostIcon } from "./Icons";
 
 interface InfoBarProps {
   meta: SessionMeta;
@@ -73,10 +74,14 @@ export function InfoBar({
 
       {sessionTotals.total_tokens > 0 && (
         <span className="info-bar__tokens">
-          {"\u{1FA99}"} {formatTokens(sessionTotals.total_tokens)} tok
+          <TokensIcon /> {formatTokens(sessionTotals.total_tokens)} tok
         </span>
       )}
-      {totalCost > 0 && <span className="info-bar__cost">{formatCost(totalCost)}</span>}
+      {totalCost > 0 && (
+        <span className="info-bar__cost">
+          <CostIcon /> {formatCost(totalCost)}
+        </span>
+      )}
 
       {ongoing && (
         <span className="info-bar__ongoing">

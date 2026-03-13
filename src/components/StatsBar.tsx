@@ -1,6 +1,15 @@
 import { useMemo } from "react";
 import { formatTokens, formatDuration } from "../lib/format";
 import type { DisplayMessage, DisplayItem } from "../types";
+import {
+  TokensIcon,
+  ToolsIcon,
+  ThinkingIcon,
+  OutputIcon,
+  DurationIcon,
+  AgentsIcon,
+  SpawnIcon,
+} from "./Icons";
 
 export interface Stats {
   tokens: number;
@@ -81,43 +90,57 @@ export function StatsBar({ stats }: { stats: Stats }) {
         <span
           className={`message__stat${stats.tokens > 150000 ? " message__stat--tokens-high" : ""}`}
         >
-          <span className="message__stat-icon">{"\u{1FA99}"}</span>
+          <span className="message__stat-icon">
+            <TokensIcon />
+          </span>
           {formatTokens(stats.tokens)} tok
         </span>
       )}
       {stats.toolCount > 0 && (
         <span className="message__stat">
-          <span className="message__stat-icon">{"\u{1F527}"}</span>
+          <span className="message__stat-icon">
+            <ToolsIcon />
+          </span>
           {stats.toolCount} tool{stats.toolCount > 1 ? "s" : ""}
         </span>
       )}
       {stats.thinkingCount > 0 && (
         <span className="message__stat">
-          <span className="message__stat-icon">{"\u{1F4A1}"}</span>
+          <span className="message__stat-icon">
+            <ThinkingIcon />
+          </span>
           {stats.thinkingCount} think
         </span>
       )}
       {stats.outputCount > 0 && (
         <span className="message__stat">
-          <span className="message__stat-icon">{"\u{1F4AC}"}</span>
+          <span className="message__stat-icon">
+            <OutputIcon />
+          </span>
           {stats.outputCount} out
         </span>
       )}
       {stats.durationMs > 0 && (
         <span className="message__stat">
-          <span className="message__stat-icon">{"\u23F1"}</span>
+          <span className="message__stat-icon">
+            <DurationIcon />
+          </span>
           {formatDuration(stats.durationMs)}
         </span>
       )}
       {stats.agentCount > 0 && (
         <span className="message__stat message__stat--agents">
-          <span className="message__stat-icon">{"\u{1F9E9}"}</span>
+          <span className="message__stat-icon">
+            <AgentsIcon />
+          </span>
           {stats.agentCount} agent{stats.agentCount > 1 ? "s" : ""}
         </span>
       )}
       {stats.spawnCount > 0 && (
         <span className="message__stat">
-          <span className="message__stat-icon">{"\u{1F916}"}</span>
+          <span className="message__stat-icon">
+            <SpawnIcon />
+          </span>
           {stats.spawnCount} spawn{stats.spawnCount > 1 ? "s" : ""}
         </span>
       )}

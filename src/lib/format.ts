@@ -67,10 +67,10 @@ export function estimateCost(
 }
 
 /**
- * Formats a dollar amount: 0.0023 -> "$0.00", 1.23 -> "$1.23", 12.5 -> "$12.50"
+ * Formats a dollar amount: 0.0023 -> "0.00", 1.23 -> "1.23", 12.5 -> "12.50"
  */
 export function formatCost(usd: number): string {
-  return "$" + usd.toFixed(2);
+  return usd.toFixed(2);
 }
 
 /**

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, type ReactNode } from "react";
+import { IoMdCloseCircle } from "react-icons/io";
 
 interface PopoutModalProps {
   onClose: () => void;
@@ -89,7 +90,7 @@ export function PopoutModal({
         <div className="popout-modal__header">
           {header}
           <button className="popout-modal__close" onClick={onClose}>
-            {"\u2715"}
+            <IoMdCloseCircle className="icon--close" />
           </button>
         </div>
         <div className="popout-modal__body">{children}</div>

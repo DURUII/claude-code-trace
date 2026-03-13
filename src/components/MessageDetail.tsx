@@ -10,6 +10,8 @@ import { useScrollToSelected } from "../hooks/useScrollToSelected";
 import { useKeyboard } from "../hooks/useKeyboard";
 import { BackButton } from "./BackButton";
 import { ResizeHandle } from "./ResizeHandle";
+import { IoMdCloseCircle } from "react-icons/io";
+import { ClaudeIcon } from "./Icons";
 
 /* ─── Panel stack types ─── */
 
@@ -656,9 +658,11 @@ function AgentPanelHeader({
       style={panelColor ? { background: `${panelColor}10` } : undefined}
     >
       <button className="agent-panel__close" onClick={onClose}>
-        {"\u2715"}
+        <IoMdCloseCircle className="icon--close" />
       </button>
-      <span className="agent-panel__icon">{"\u{1F916}"}</span>
+      <span className="agent-panel__icon">
+        <ClaudeIcon />
+      </span>
       <span className="agent-panel__type" style={panelColor ? { color: panelColor } : undefined}>
         {item.subagent_type || item.tool_name || "Subagent"}
       </span>

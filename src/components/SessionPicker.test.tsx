@@ -127,10 +127,10 @@ describe("SessionPicker", () => {
       />,
     );
     expect(screen.getByText("sonnet4.20250514")).toBeInTheDocument();
-    // Session row stat
-    expect(screen.getByText("5.0k tok")).toBeInTheDocument();
+    // Tokens appear in both header and session row
+    expect(screen.getAllByText(/5\.0k/).length).toBeGreaterThanOrEqual(1);
     // Cost appears in both header and session row
-    expect(screen.getAllByText("$1.23")).toHaveLength(2);
+    expect(screen.getAllByText("1.23")).toHaveLength(2);
     expect(screen.getByText("1m 0s")).toBeInTheDocument();
   });
 

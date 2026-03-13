@@ -2,12 +2,12 @@ import { describe, it, expect } from "vitest";
 import {
   colors,
   teamColors,
-  toolCategoryIcons,
   spinnerFrames,
   getModelColor,
   getTeamColor,
   getContextColor,
 } from "./theme";
+import { toolCategoryIcons } from "../components/Icons";
 
 describe("colors", () => {
   it("contains expected model colors", () => {
@@ -180,10 +180,9 @@ describe("toolCategoryIcons", () => {
     expect(Object.keys(toolCategoryIcons)).toHaveLength(expectedKeys.length);
   });
 
-  it("maps each category to a non-empty string", () => {
+  it("maps each category to a truthy ReactNode", () => {
     for (const value of Object.values(toolCategoryIcons)) {
-      expect(typeof value).toBe("string");
-      expect(value.length).toBeGreaterThan(0);
+      expect(value).toBeTruthy();
     }
   });
 });

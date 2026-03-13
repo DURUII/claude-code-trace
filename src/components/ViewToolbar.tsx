@@ -1,4 +1,5 @@
 import type { ViewState } from "../types";
+import { BackIcon } from "./Icons";
 
 interface ViewToolbarProps {
   view: ViewState;
@@ -33,7 +34,7 @@ export function ViewToolbar({
     return (
       <div className="view-toolbar">
         <button className="view-toolbar__btn" onClick={onGoToSessions}>
-          &larr; Sessions
+          <BackIcon /> Sessions
         </button>
         <button className="view-toolbar__btn" onClick={onExpandAll}>
           Expand All
@@ -65,7 +66,7 @@ export function ViewToolbar({
     return hasSession ? (
       <div className="view-toolbar">
         <button className="view-toolbar__btn" onClick={onBackToList}>
-          &larr; Back to Messages
+          <BackIcon /> Back to Messages
         </button>
       </div>
     ) : null;

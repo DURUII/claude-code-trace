@@ -90,29 +90,6 @@ export function getContextColor(pct: number): string {
   return colors.contextCrit;
 }
 
-// Tool category icon labels (unicode fallbacks for web)
-export const toolCategoryIcons: Record<string, string> = {
-  Read: "\u{1F4D6}",
-  Edit: "\u{270F}\u{FE0F}",
-  Write: "\u{270F}\u{FE0F}",
-  Bash: "\u{1F527}",
-  Grep: "\u{1F50D}",
-  Glob: "\u{1F50D}",
-  Task: "\u{1F916}",
-  Tool: "\u{1F527}",
-  Web: "\u{1F310}",
-  Cron: "\u{23F0}",
-  Mcp: "\u{1F50C}",
-  Other: "\u{1F527}",
-};
-
-// Task status icons
-export const taskStatusIcons: Record<string, string> = {
-  completed: "\u2713",
-  in_progress: "\u27F3",
-  pending: "\u25CB",
-};
-
 // Spinner frames (braille)
 export const spinnerFrames = [
   "\u280B",

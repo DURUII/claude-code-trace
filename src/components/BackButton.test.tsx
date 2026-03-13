@@ -5,12 +5,12 @@ import { BackButton } from "./BackButton";
 describe("BackButton", () => {
   it("renders with default 'Back' label", () => {
     render(<BackButton onClick={() => {}} />);
-    expect(screen.getByRole("button")).toHaveTextContent("\u2190 Back");
+    expect(screen.getByRole("button")).toHaveTextContent("Back");
   });
 
   it("renders with custom label", () => {
     render(<BackButton onClick={() => {}} label="Go Home" />);
-    expect(screen.getByRole("button")).toHaveTextContent("\u2190 Go Home");
+    expect(screen.getByRole("button")).toHaveTextContent("Go Home");
   });
 
   it("calls onClick when clicked", () => {

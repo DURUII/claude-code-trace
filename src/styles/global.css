@@ -50,9 +50,110 @@
   /* Token high */
   --token-high: #ff8700;
 
+  /* Icons */
+  --icon-claude: #d4a017;
+  --icon-user: #5fafff;
+  --icon-system: #8a8aaa;
+  --icon-warning: #ff8700;
+  --icon-thinking: #e0c050;
+  --icon-output: #63b3ed;
+  --icon-tool: #9a8aef;
+  --icon-hook: #87d787;
+  --icon-tokens: #d4a017;
+  --icon-duration: #8a8aaa;
+  --icon-agents: #63b3ed;
+  --icon-spawn: #af5fff;
+  --icon-search: #5fafff;
+  --icon-edit: #e0c050;
+  --icon-read: #87d787;
+  --icon-bash: #9a8aef;
+  --icon-web: #5fafff;
+  --icon-mcp: #af5fff;
+  --icon-cron: #8a8aaa;
+  --icon-git: #af5fff;
+
   /* Misc */
   --scrollbar-thumb: #444466;
   --scrollbar-track: transparent;
+}
+
+/* ---- Icon colors ---- */
+
+.icon--claude {
+  color: var(--icon-claude);
+}
+.icon--user {
+  color: var(--icon-user);
+}
+.icon--system {
+  color: var(--icon-system);
+}
+.icon--warning {
+  color: var(--icon-warning);
+}
+.icon--thinking {
+  color: var(--icon-thinking);
+}
+.icon--output {
+  color: var(--icon-output);
+}
+.icon--tool {
+  color: var(--icon-tool);
+}
+.icon--hook {
+  color: var(--icon-hook);
+}
+.icon--tokens {
+  color: var(--icon-tokens);
+}
+.icon--duration {
+  color: var(--icon-duration);
+}
+.icon--agents {
+  color: var(--icon-agents);
+}
+.icon--spawn {
+  color: var(--icon-spawn);
+}
+.icon--search {
+  color: var(--icon-search);
+}
+.icon--edit {
+  color: var(--icon-edit);
+}
+.icon--read {
+  color: var(--icon-read);
+}
+.icon--bash {
+  color: var(--icon-bash);
+}
+.icon--web {
+  color: var(--icon-web);
+}
+.icon--mcp {
+  color: var(--icon-mcp);
+}
+.icon--cron {
+  color: var(--icon-cron);
+}
+.icon--git {
+  color: var(--icon-git);
+}
+.icon--status-done {
+  color: var(--context-ok);
+}
+.icon--status-progress {
+  color: var(--icon-warning);
+}
+.icon--status-pending {
+  color: var(--icon-system);
+}
+.icon--cost {
+  color: var(--error);
+  font-size: 0.9em;
+}
+.icon--close {
+  color: #e06060;
 }
 
 /* ---- Reset & Base ---- */
@@ -64,6 +165,7 @@
   margin: 0;
   padding: 0;
 }
+
 
 html,
 body,
@@ -212,6 +314,8 @@ body {
   color: var(--text-dim);
   cursor: pointer;
   font-size: 14px;
+  display: inline-flex;
+  align-items: center;
   padding: 2px 4px;
   border-radius: 3px;
   line-height: 1;
@@ -322,9 +426,8 @@ body {
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   cursor: default;
-  opacity: 0.7;
 }
 
 .project-tree__item--group:hover {
@@ -335,7 +438,8 @@ body {
   display: inline-flex;
   align-items: center;
   vertical-align: middle;
-  opacity: 0.8;
+  font-size: 13px;
+  margin-right: 4px;
 }
 
 /* ---- Info Bar ---- */
@@ -435,12 +539,18 @@ body {
 .info-bar__tokens {
   color: var(--text-secondary);
   font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
 }
 
 .info-bar__cost {
   color: var(--error);
   font-size: 12px;
   font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
 }
 
 .info-bar__ongoing {
@@ -648,6 +758,9 @@ body {
   font-size: 12px;
   font-weight: 600;
   color: var(--error);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
 }
 
 .picker__session-stat--cost {
@@ -745,6 +858,14 @@ body {
   align-items: center;
   gap: 8px;
   min-width: 0;
+}
+
+.picker__session-icon {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  font-size: 14px;
+  color: var(--icon-claude);
 }
 
 .picker__session-preview {
@@ -940,6 +1061,9 @@ body {
   color: var(--accent);
   cursor: pointer;
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
 }
 
 .message__detail-btn:hover {
@@ -1002,7 +1126,9 @@ body {
 }
 
 .message__stat-icon {
-  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  font-size: 13px;
 }
 
 .message__expand-hint {
@@ -1208,11 +1334,13 @@ body {
 }
 
 .detail-item__chevron {
-  color: var(--text-dim);
   font-size: 10px;
   flex-shrink: 0;
   width: 12px;
   transition: transform 0.15s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .detail-item__chevron--expanded {
@@ -1398,6 +1526,8 @@ body {
   padding: 0 4px;
   border-radius: 3px;
   line-height: 1;
+  display: inline-flex;
+  align-items: center;
 }
 
 .detail-item__popout-btn:hover {
@@ -1474,10 +1604,12 @@ body {
   border: none;
   color: var(--text-dim);
   cursor: pointer;
-  font-size: 14px;
+  font-size: 18px;
   padding: 2px 6px;
   border-radius: 3px;
   margin-left: 8px;
+  display: inline-flex;
+  align-items: center;
 }
 
 .popout-modal__close:hover {
@@ -1632,6 +1764,9 @@ body {
   font-size: 11px;
   color: var(--text-dim);
   margin-top: 1px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
 }
 
 .team-task__status-badge {
@@ -1891,6 +2026,13 @@ body {
 .empty-state__icon {
   font-size: 32px;
   opacity: 0.4;
+  display: inline-flex;
+  align-items: center;
+}
+
+.empty-state__icon svg {
+  width: 32px;
+  height: 32px;
 }
 
 .empty-state__text {
@@ -1985,9 +2127,11 @@ body {
   border: none;
   color: var(--text-dim);
   cursor: pointer;
-  font-size: 13px;
+  font-size: 18px;
   padding: 2px 6px;
   border-radius: 3px;
+  display: inline-flex;
+  align-items: center;
 }
 
 .agent-panel__close:hover {
@@ -1997,6 +2141,13 @@ body {
 
 .agent-panel__icon {
   font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.agent-panel__icon svg {
+  width: 13px;
+  height: 13px;
 }
 
 .agent-panel__type {

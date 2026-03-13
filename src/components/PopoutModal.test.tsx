@@ -18,7 +18,7 @@ describe("PopoutModal", () => {
   it("calls onClose when close button clicked", () => {
     const onClose = vi.fn();
     render(<PopoutModal {...defaultProps} onClose={onClose} />);
-    fireEvent.click(screen.getByText("\u2715"));
+    fireEvent.click(document.querySelector(".popout-modal__close")!);
     expect(onClose).toHaveBeenCalledOnce();
   });
 

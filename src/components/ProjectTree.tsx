@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import type { SessionInfo } from "../types";
 import { shortPath, projectKey, projectDisplayName } from "../lib/format";
 import { useScrollToSelected } from "../hooks/useScrollToSelected";
+import { RefreshIcon, GitBranchIcon, GitMergeIcon } from "./Icons";
 
 interface ProjectTreeProps {
   sessions: SessionInfo[];
@@ -263,7 +264,7 @@ export function ProjectTree({
           }}
           title="Refresh all projects"
         >
-          {"\u21BB"}
+          <RefreshIcon />
         </button>
       </div>
       <div className="project-tree__list">
@@ -285,39 +286,7 @@ export function ProjectTree({
                 {item.depth > 0 && <span className="project-tree__branch">{"\u2514"} </span>}
                 {item.isGroup && (
                   <span className="project-tree__group-icon">
-                    {item.name === "worktrees" ? (
-                      <svg
-                        viewBox="0 0 24 24"
-                        width="11"
-                        height="11"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <line x1="6" y1="3" x2="6" y2="15" />
-                        <circle cx="18" cy="6" r="3" />
-                        <circle cx="6" cy="18" r="3" />
-                        <path d="M18 9a9 9 0 0 1-9 9" />
-                      </svg>
-                    ) : (
-                      <svg
-                        viewBox="0 0 24 24"
-                        width="11"
-                        height="11"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <circle cx="18" cy="18" r="3" />
-                        <circle cx="6" cy="6" r="3" />
-                        <path d="M13 6h3a2 2 0 0 1 2 2v7" />
-                        <line x1="6" y1="9" x2="6" y2="21" />
-                      </svg>
-                    )}{" "}
+                    {item.name === "worktrees" ? <GitBranchIcon /> : <GitMergeIcon />}
                   </span>
                 )}
                 {item.name}

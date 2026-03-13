@@ -11,6 +11,8 @@ import {
   shortModel,
 } from "../lib/format";
 import { getModelColor, spinnerFrames } from "../lib/theme";
+import { BsClaude } from "react-icons/bs";
+import { TokensIcon, CostIcon } from "./Icons";
 
 interface SessionPickerProps {
   sessions: SessionInfo[];
@@ -59,10 +61,14 @@ export function SessionPicker({
           Sessions
           {totalTokens > 0 && (
             <span className="picker__total-tokens">
-              {"\u{1FA99}"} {formatTokens(totalTokens)} tok
+              <TokensIcon /> {formatTokens(totalTokens)} tok
             </span>
           )}
-          {totalCost > 0 && <span className="picker__total-cost">{formatCost(totalCost)}</span>}
+          {totalCost > 0 && (
+            <span className="picker__total-cost">
+              <CostIcon /> {formatCost(totalCost)}
+            </span>
+          )}
         </div>
         <input
           ref={searchRef}
@@ -107,6 +113,9 @@ export function SessionPicker({
                   onClick={() => onSelect(session)}
                 >
                   <div className="picker__session-top">
+                    <span className="picker__session-icon">
+                      <BsClaude />
+                    </span>
                     <span className="picker__session-preview">
                       {truncate(session.first_message || session.session_id, 80)}
                     </span>
@@ -129,7 +138,7 @@ export function SessionPicker({
                     )}
                     {sessionCost > 0 && (
                       <span className="picker__session-stat picker__session-stat--cost">
-                        {formatCost(sessionCost)}
+                        <CostIcon /> {formatCost(sessionCost)}
                       </span>
                     )}
                     {session.duration_ms > 0 && (

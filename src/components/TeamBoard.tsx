@@ -1,6 +1,7 @@
 import type { TeamSnapshot } from "../types";
-import { getTeamColor, taskStatusIcons } from "../lib/theme";
+import { getTeamColor } from "../lib/theme";
 import { BackButton } from "./BackButton";
+import { taskStatusIcons, ClaudeIcon, ForwardIcon } from "./Icons";
 
 interface TeamBoardProps {
   teams: TeamSnapshot[];
@@ -18,7 +19,9 @@ export function TeamBoard({ teams, onBack }: TeamBoardProps) {
           <BackButton onClick={onBack} />
         </div>
         <div className="empty-state">
-          <div className="empty-state__icon">{"\u{1F916}"}</div>
+          <div className="empty-state__icon">
+            <ClaudeIcon />
+          </div>
           <div className="empty-state__text">No active teams</div>
         </div>
       </div>
@@ -77,7 +80,7 @@ export function TeamBoard({ teams, onBack }: TeamBoardProps) {
                         <div className="team-task__subject">{task.subject}</div>
                         {task.owner && (
                           <div className="team-task__owner">
-                            {"\u2192"} {task.owner}
+                            <ForwardIcon /> {task.owner}
                           </div>
                         )}
                       </div>

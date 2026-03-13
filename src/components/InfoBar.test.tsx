@@ -237,7 +237,7 @@ describe("InfoBar", () => {
         ongoing={false}
       />,
     );
-    expect(screen.getByText("$1.50")).toBeInTheDocument();
+    expect(screen.getByText("1.50")).toBeInTheDocument();
   });
 
   it("shows active spinner when ongoing=true", () => {

@@ -1,8 +1,8 @@
-import { Claude } from "@thesvg/react";
 import type { DisplayMessage } from "../types";
 import { shortModel, formatExactTime, firstLine, truncate } from "../lib/format";
 import { getModelColor } from "../lib/theme";
 import { StatsBar, statsFromMessage } from "./StatsBar";
+import { ClaudeIcon, UserIcon, SystemIcon, WarningIcon, ForwardIcon } from "./Icons";
 
 interface MessageItemProps {
   message: DisplayMessage;
@@ -51,13 +51,13 @@ export function MessageItem({
       <div className="message__header">
         <span className="message__role-icon">
           {msg.role === "claude" ? (
-            <Claude className="message__claude-icon" />
+            <ClaudeIcon className="message__claude-icon" />
           ) : msg.role === "user" ? (
-            "\u{1F464}"
+            <UserIcon />
           ) : msg.is_error ? (
-            "\u26A0"
+            <WarningIcon />
           ) : (
-            "\u{1F4BB}"
+            <SystemIcon />
           )}
         </span>
         <span
@@ -83,7 +83,7 @@ export function MessageItem({
               onOpenDetail(index);
             }}
           >
-            Detail {"\u2192"}
+            Detail <ForwardIcon />
           </button>
         )}
       </div>

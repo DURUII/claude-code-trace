@@ -17,14 +17,22 @@ Reads session logs from `~/.claude/` and renders them as a scrollable conversati
 - [Rust](https://rustup.rs/) 1.77+
 - Node.js 18+
 - macOS: Xcode Command Line Tools (`xcode-select --install`)
+- Linux: `libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libxdo-dev libssl-dev`
+- Windows: [WebView2](https://developer.microsoft.com/en-us/microsoft-edge/webview2/) (pre-installed on Windows 10/11)
 
 ## Install
 
 ### Download
 
-Grab the latest `.dmg` from [Releases](https://github.com/delexw/tail-claude-gui/releases). Open it and drag the app to `/Applications`.
+Grab the latest release from [Releases](https://github.com/delexw/tail-claude-gui/releases):
 
-> The app is unsigned. On first launch, right-click > Open > Open to bypass Gatekeeper.
+| Platform | File |
+| -------- | ---- |
+| macOS    | `.dmg` |
+| Linux    | `.deb`, `.rpm`, `.AppImage` |
+| Windows  | `.msi`, `.exe` (NSIS installer) |
+
+> **macOS:** The app is unsigned. On first launch, right-click > Open > Open to bypass Gatekeeper.
 
 ### Build from source
 
@@ -108,11 +116,11 @@ cargo fmt --manifest-path src-tauri/Cargo.toml     # Rust format
 Push a version tag to trigger a GitHub Actions build:
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.2.0
+git push origin v0.2.0
 ```
 
-This creates a draft release with the `.dmg` attached. Review and publish it from the [Releases](https://github.com/delexw/tail-claude-gui/releases) page.
+This creates a draft release with macOS, Linux, and Windows artifacts attached. Review and publish it from the [Releases](https://github.com/delexw/tail-claude-gui/releases) page.
 
 ## Attribution
 

@@ -324,7 +324,7 @@ mod tests {
 
     #[test]
     fn apply_staleness_false_when_ongoing_and_stale() {
-        let stale = Utc::now() - Duration::seconds(60);
+        let stale = Utc::now() - Duration::seconds(61);
         assert!(!apply_staleness(true, stale));
     }
 

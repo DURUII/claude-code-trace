@@ -22,6 +22,13 @@ Reads session logs from `~/.claude/` and renders them as a scrollable conversati
 
 ## Install
 
+> [!IMPORTANT]
+> **macOS:** The app is unsigned. After installing, remove the quarantine attribute:
+>
+> ```bash
+> xattr -cr /Applications/tail-claude-gui.app
+> ```
+
 ### Download
 
 Grab the latest release from [Releases](https://github.com/delexw/tail-claude-gui/releases):
@@ -31,12 +38,6 @@ Grab the latest release from [Releases](https://github.com/delexw/tail-claude-gu
 | macOS    | `.dmg`                          |
 | Linux    | `.deb`, `.rpm`, `.AppImage`     |
 | Windows  | `.msi`, `.exe` (NSIS installer) |
-
-> **macOS:** The app is unsigned. After downloading, remove the quarantine attribute:
->
-> ```bash
-> xattr -cr path/to/tail-claude-gui.app
-> ```
 
 ### Build from source
 

@@ -251,7 +251,7 @@ pub fn classify(e: Entry) -> Option<ClassifiedMsg> {
             return Some(ClassifiedMsg::System(SystemMsg {
                 timestamp: ts,
                 output: extract_task_notification(&content_str),
-                is_error: status == "killed",
+                is_error: status == "failed",
             }));
         }
     }
@@ -725,12 +725,24 @@ mod tests {
     }
 
     #[test]
-    fn classify_task_notification_killed_is_error() {
-        let content = "<task-notification><summary>Task failed</summary><status>killed</status></task-notification>";
+    fn classify_task_notification_killed_not_error() {
+        let content = "<task-notification><summary>Background command \"Start sso-server\" was stopped</summary><status>killed</status></task-notification>";
         let e = make_entry("user", Some(json!(content)));
         match classify(e) {
             Some(ClassifiedMsg::System(s)) => {
-                assert!(s.is_error);
+                assert!(!s.is_error, "killed (user-stopped) should not be an error");
+            }
+            other => panic!("Expected System, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn classify_task_notification_failed_is_error() {
+        let content = "<task-notification><summary>Background command failed</summary><status>failed</status></task-notification>";
+        let e = make_entry("user", Some(json!(content)));
+        match classify(e) {
+            Some(ClassifiedMsg::System(s)) => {
+                assert!(s.is_error, "failed status should be an error");
             }
             other => panic!("Expected System with is_error, got {:?}", other),
         }

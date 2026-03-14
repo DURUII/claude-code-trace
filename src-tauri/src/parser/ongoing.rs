@@ -212,9 +212,11 @@ impl<'a> OngoingChecker<'a> {
         Self::has_pending_background_commands(self.chunks)
     }
 
-    /// Check if a subagent process is ongoing (chunk-based + file staleness).
+    /// Check if a subagent process is ongoing (chunk-based + background commands + file staleness).
     pub fn is_subagent_ongoing(proc: &super::subagent::SubagentProcess) -> bool {
-        Self::is_chunks_ongoing(&proc.chunks) && apply_staleness(true, proc.file_mod_time)
+        (Self::is_chunks_ongoing(&proc.chunks)
+            || Self::has_pending_background_commands(&proc.chunks))
+            && apply_staleness(true, proc.file_mod_time)
     }
 
     /// Cascading check: returns true if `proc` or any of its descendant subagents are ongoing.

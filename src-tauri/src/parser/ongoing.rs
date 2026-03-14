@@ -198,17 +198,27 @@ impl<'a> OngoingChecker<'a> {
 
     /// Full ongoing check: chunks → subagents → background commands → file staleness.
     pub fn is_ongoing(&self) -> bool {
-        // If the main session chunks are still in progress, gate on the main file freshness.
-        if self.chunks_ongoing() {
-            return self.is_file_fresh();
+        let chunks_active = self.chunks_ongoing();
+        let subagents_active = self.any_subagent_ongoing();
+
+        if chunks_active {
+            // Main chunks show activity. If the main file is fresh, ongoing.
+            // If the main file is stale but a subagent is still fresh, also
+            // ongoing — the main file stops being written to while subagents
+            // do the actual work.
+            if self.is_file_fresh() || subagents_active {
+                return true;
+            }
         }
-        // If any subagent is still running, the session is ongoing.
-        // Subagent staleness is already checked per-file inside is_subagent_ongoing,
-        // so we don't re-check the main session file here.
-        if self.any_subagent_ongoing() {
+
+        // Subagent is active even though main chunks look done.
+        if subagents_active {
             return true;
         }
-        // Check for background Bash commands that haven't completed yet.
+
+        // Check for background Bash commands that haven't completed yet
+        // (in main session or subagent chunks — subagent check is inside
+        // is_subagent_ongoing above, this catches main-session-level ones).
         Self::has_pending_background_commands(self.chunks)
     }
 

@@ -257,7 +257,6 @@ fn merge_ai_buffer(buf: &[AIMsg]) -> Chunk {
                         items.push(DisplayItem {
                             item_type: DisplayItemType::Thinking,
                             text: b.text.clone(),
-                            token_count: b.text.len() / 4,
                             ..Default::default()
                         });
                     }
@@ -265,16 +264,10 @@ fn merge_ai_buffer(buf: &[AIMsg]) -> Chunk {
                         items.push(DisplayItem {
                             item_type: DisplayItemType::Output,
                             text: b.text.clone(),
-                            token_count: b.text.len() / 4,
                             ..Default::default()
                         });
                     }
                     "tool_use" => {
-                        let input_len = b
-                            .tool_input
-                            .as_ref()
-                            .map(|v| serde_json::to_string(v).unwrap_or_default().len())
-                            .unwrap_or(0);
                         let summary = tool_summary(&b.tool_name, &b.tool_input);
                         let category = categorize_tool_name(&b.tool_name);
                         let display_name = mcp_display_name(&b.tool_name);
@@ -291,7 +284,6 @@ fn merge_ai_buffer(buf: &[AIMsg]) -> Chunk {
                                 subagent_type: info.0,
                                 subagent_desc: info.1,
                                 team_member_name: info.2,
-                                token_count: input_len / 4,
                                 ..Default::default()
                             });
                         } else {
@@ -302,7 +294,6 @@ fn merge_ai_buffer(buf: &[AIMsg]) -> Chunk {
                                 tool_input: b.tool_input.clone(),
                                 tool_summary: summary,
                                 tool_category: category,
-                                token_count: input_len / 4,
                                 ..Default::default()
                             });
                         }
@@ -326,12 +317,10 @@ fn merge_ai_buffer(buf: &[AIMsg]) -> Chunk {
                             items[p.index].tool_error = b.is_error;
                             let dur = m.timestamp.signed_duration_since(p.timestamp);
                             items[p.index].duration_ms = dur.num_milliseconds();
-                            items[p.index].token_count += b.content.len() / 4;
                         } else {
                             items.push(DisplayItem {
                                 item_type: DisplayItemType::Output,
                                 text: b.content.clone(),
-                                token_count: b.content.len() / 4,
                                 ..Default::default()
                             });
                         }
@@ -342,7 +331,6 @@ fn merge_ai_buffer(buf: &[AIMsg]) -> Chunk {
                             text: b.text.clone(),
                             teammate_id: b.teammate_id.clone(),
                             teammate_color: b.teammate_color.clone(),
-                            token_count: b.text.len() / 4,
                             ..Default::default()
                         });
                     }

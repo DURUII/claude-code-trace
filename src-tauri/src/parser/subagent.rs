@@ -679,7 +679,6 @@ pub fn inject_orphan_subagents(chunks: &mut Vec<Chunk>, processes: &mut [Subagen
             subagent_desc: processes[oi].description.clone(),
             is_orphan: true,
             duration_ms: processes[oi].duration_ms,
-            token_count: processes[oi].usage.total_tokens() as usize / 4,
             ..Default::default()
         });
     }

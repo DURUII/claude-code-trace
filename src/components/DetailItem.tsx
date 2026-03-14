@@ -1,7 +1,7 @@
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import type { DisplayItem } from "../types";
-import { formatTokens, formatDuration, formatJson, firstLine, truncate } from "../lib/format";
+import { formatDuration, formatJson, firstLine, truncate } from "../lib/format";
 import { getTeamColor } from "../lib/theme";
 import { StatsBar, useSubagentStats } from "./StatsBar";
 import { PopoutModal } from "./PopoutModal";
@@ -92,9 +92,6 @@ export function DetailItem({
           {item.duration_ms > 0 && (
             <span className="detail-item__duration">{formatDuration(item.duration_ms)}</span>
           )}
-          {item.token_count > 0 && (
-            <span className="detail-item__tokens">{formatTokens(item.token_count)} tok</span>
-          )}
           {item.subagent_ongoing && <OngoingDots />}
           {(hasAgentMessages || item.subagent_prompt) && (
             <button
@@ -152,7 +149,6 @@ export function DetailItem({
               {item.agent_id && <span className="popout-modal__agent-id">{item.agent_id}</span>}
               <span className="popout-modal__right">
                 {item.duration_ms > 0 && <span>{formatDuration(item.duration_ms)}</span>}
-                {item.token_count > 0 && <span>{formatTokens(item.token_count)} tok</span>}
               </span>
             </>
           }

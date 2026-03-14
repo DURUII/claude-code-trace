@@ -484,6 +484,7 @@ function AgentListColumn({
             }
             const isSelected = i === selectedMsg;
             const isExpanded = expandedSet.has(i);
+            const isLast = i === messages.length - 1;
             return (
               <MessageItem
                 key={i}
@@ -492,6 +493,7 @@ function AgentListColumn({
                 index={i}
                 isSelected={isSelected}
                 isExpanded={isExpanded}
+                isOngoing={isLast && item.subagent_ongoing}
                 onClick={handleClick}
                 onOpenDetail={(idx) => onOpenDetail(messages[idx])}
               />
@@ -641,6 +643,11 @@ function AgentDetailColumn({
                 ))}
               </div>
             )}
+            {item.subagent_ongoing && (
+              <div className="message-detail__ongoing">
+                <OngoingDots />
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -679,7 +686,6 @@ function AgentPanelHeader({
       {item.agent_id && <span className="agent-panel__id">{item.agent_id}</span>}
       <span className="agent-panel__stats">
         {item.duration_ms > 0 && <span>{formatDuration(item.duration_ms)}</span>}
-        {item.token_count > 0 && <span>{formatTokens(item.token_count)} tok</span>}
       </span>
     </div>
   );

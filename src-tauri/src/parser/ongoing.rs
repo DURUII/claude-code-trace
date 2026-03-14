@@ -196,7 +196,7 @@ impl<'a> OngoingChecker<'a> {
         }
     }
 
-    /// Full ongoing check: chunks → subagents → file staleness.
+    /// Full ongoing check: chunks → subagents → background commands → file staleness.
     pub fn is_ongoing(&self) -> bool {
         // If the main session chunks are still in progress, gate on the main file freshness.
         if self.chunks_ongoing() {
@@ -205,7 +205,11 @@ impl<'a> OngoingChecker<'a> {
         // If any subagent is still running, the session is ongoing.
         // Subagent staleness is already checked per-file inside is_subagent_ongoing,
         // so we don't re-check the main session file here.
-        self.any_subagent_ongoing()
+        if self.any_subagent_ongoing() {
+            return true;
+        }
+        // Check for background Bash commands that haven't completed yet.
+        Self::has_pending_background_commands(self.chunks)
     }
 
     /// Check if a subagent process is ongoing (chunk-based + file staleness).
@@ -315,6 +319,42 @@ impl<'a> OngoingChecker<'a> {
             }
         }
         false
+    }
+
+    /// Check for Bash commands launched with run_in_background that haven't
+    /// received a terminal task notification yet (completed/failed/killed).
+    /// Counts background launches vs terminal notifications — if launches
+    /// exceed notifications, some commands are still running.
+    fn has_pending_background_commands(chunks: &[Chunk]) -> bool {
+        let mut bg_launched: usize = 0;
+        let mut bg_resolved: usize = 0;
+
+        for chunk in chunks {
+            match chunk.chunk_type {
+                ChunkType::AI => {
+                    for item in &chunk.items {
+                        if item.item_type == DisplayItemType::ToolCall
+                            && item.tool_result.contains("running in background")
+                        {
+                            bg_launched += 1;
+                        }
+                    }
+                }
+                ChunkType::System => {
+                    let out = &chunk.output;
+                    if (out.contains("completed")
+                        || out.contains("failed")
+                        || out.contains("was stopped"))
+                        && out.contains("Background command")
+                    {
+                        bg_resolved += 1;
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        bg_launched > bg_resolved
     }
 }
 
@@ -923,5 +963,119 @@ mod tests {
             ..Default::default()
         });
         assert!(OngoingChecker::is_chunks_ongoing(&[ai1, ai2]));
+    }
+
+    // --- has_pending_background_commands tests ---
+
+    #[test]
+    fn bg_command_running_is_pending() {
+        let mut ai_chunk = make_chunk(ChunkType::AI);
+        ai_chunk.items.push(DisplayItem {
+            item_type: DisplayItemType::ToolCall,
+            tool_name: "Bash".to_string(),
+            tool_result: "Command running in background with ID: abc123".to_string(),
+            ..Default::default()
+        });
+        ai_chunk.items.push(DisplayItem {
+            item_type: DisplayItemType::Output,
+            text: "Started the task".to_string(),
+            ..Default::default()
+        });
+        assert!(OngoingChecker::has_pending_background_commands(&[ai_chunk]));
+    }
+
+    #[test]
+    fn bg_command_completed_not_pending() {
+        let mut ai_chunk = make_chunk(ChunkType::AI);
+        ai_chunk.items.push(DisplayItem {
+            item_type: DisplayItemType::ToolCall,
+            tool_name: "Bash".to_string(),
+            tool_result: "Command running in background with ID: abc123".to_string(),
+            ..Default::default()
+        });
+        let mut sys_chunk = make_chunk(ChunkType::System);
+        sys_chunk.output = "Background command \"test\" completed (exit code 0)".to_string();
+        assert!(!OngoingChecker::has_pending_background_commands(&[
+            ai_chunk, sys_chunk
+        ]));
+    }
+
+    #[test]
+    fn bg_command_stopped_not_pending() {
+        let mut ai_chunk = make_chunk(ChunkType::AI);
+        ai_chunk.items.push(DisplayItem {
+            item_type: DisplayItemType::ToolCall,
+            tool_name: "Bash".to_string(),
+            tool_result: "Command running in background with ID: abc123".to_string(),
+            ..Default::default()
+        });
+        let mut sys_chunk = make_chunk(ChunkType::System);
+        sys_chunk.output = "Background command \"test\" was stopped".to_string();
+        assert!(!OngoingChecker::has_pending_background_commands(&[
+            ai_chunk, sys_chunk
+        ]));
+    }
+
+    #[test]
+    fn multiple_bg_one_pending() {
+        let mut ai_chunk = make_chunk(ChunkType::AI);
+        ai_chunk.items.push(DisplayItem {
+            item_type: DisplayItemType::ToolCall,
+            tool_name: "Bash".to_string(),
+            tool_result: "Command running in background with ID: aaa".to_string(),
+            ..Default::default()
+        });
+        ai_chunk.items.push(DisplayItem {
+            item_type: DisplayItemType::ToolCall,
+            tool_name: "Bash".to_string(),
+            tool_result: "Command running in background with ID: bbb".to_string(),
+            ..Default::default()
+        });
+        let mut sys_chunk = make_chunk(ChunkType::System);
+        sys_chunk.output = "Background command \"first\" completed (exit code 0)".to_string();
+        // Only 1 of 2 resolved
+        assert!(OngoingChecker::has_pending_background_commands(&[
+            ai_chunk, sys_chunk
+        ]));
+    }
+
+    #[test]
+    fn no_bg_commands_not_pending() {
+        let mut ai_chunk = make_chunk(ChunkType::AI);
+        ai_chunk.items.push(DisplayItem {
+            item_type: DisplayItemType::ToolCall,
+            tool_name: "Bash".to_string(),
+            tool_result: "file1.txt\nfile2.txt".to_string(),
+            ..Default::default()
+        });
+        assert!(!OngoingChecker::has_pending_background_commands(&[
+            ai_chunk
+        ]));
+    }
+
+    #[test]
+    fn session_ongoing_with_pending_bg_command() {
+        // Main session is done (end_turn), but a background command is running.
+        let mut ai_chunk = make_chunk(ChunkType::AI);
+        ai_chunk.stop_reason = "end_turn".to_string();
+        ai_chunk.items.push(DisplayItem {
+            item_type: DisplayItemType::ToolCall,
+            tool_name: "Bash".to_string(),
+            tool_result: "Command running in background with ID: xyz".to_string(),
+            ..Default::default()
+        });
+        ai_chunk.items.push(DisplayItem {
+            item_type: DisplayItemType::Output,
+            text: "I started the command".to_string(),
+            ..Default::default()
+        });
+
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("session.jsonl");
+        std::fs::write(&path, "data").unwrap();
+
+        let chunks = vec![ai_chunk];
+        let checker = OngoingChecker::new(&chunks, &[], path.to_str().unwrap());
+        assert!(checker.is_ongoing());
     }
 }

@@ -8,16 +8,44 @@ interface ViewToolbarProps {
   view: ViewState;
   hasTeams: boolean;
   hasSession: boolean;
-  messageCount: number;
   onGoToSessions: () => void;
   onExpandAll: () => void;
   onCollapseAll: () => void;
-  onJumpTop: () => void;
-  onJumpBottom: () => void;
   onOpenTeams: () => void;
   onOpenDebug: () => void;
   onBackToList: () => void;
   onOpenSettings: () => void;
+}
+
+function scrollContent(to: "top" | "bottom") {
+  const el = document.querySelector(".main-content");
+  if (el) el.scrollTo({ top: to === "top" ? 0 : el.scrollHeight, behavior: "smooth" });
+}
+
+function CommonButtons({
+  onExpandAll,
+  onCollapseAll,
+}: {
+  onExpandAll: () => void;
+  onCollapseAll: () => void;
+}) {
+  return (
+    <>
+      <button className="view-toolbar__btn" onClick={onExpandAll}>
+        Expand All
+      </button>
+      <button className="view-toolbar__btn" onClick={onCollapseAll}>
+        Collapse All
+      </button>
+      <span className="view-toolbar__separator" />
+      <button className="view-toolbar__btn" onClick={() => scrollContent("top")}>
+        Top
+      </button>
+      <button className="view-toolbar__btn" onClick={() => scrollContent("bottom")}>
+        Bottom
+      </button>
+    </>
+  );
 }
 
 function RightButtons({ onOpenSettings }: { onOpenSettings: () => void }) {
@@ -44,12 +72,9 @@ export function ViewToolbar({
   view,
   hasTeams,
   hasSession,
-  messageCount,
   onGoToSessions,
   onExpandAll,
   onCollapseAll,
-  onJumpTop,
-  onJumpBottom,
   onOpenTeams,
   onOpenDebug,
   onBackToList,
@@ -61,19 +86,7 @@ export function ViewToolbar({
         <button className="view-toolbar__btn" onClick={onGoToSessions}>
           <BackIcon /> Sessions
         </button>
-        <button className="view-toolbar__btn" onClick={onExpandAll}>
-          Expand All
-        </button>
-        <button className="view-toolbar__btn" onClick={onCollapseAll}>
-          Collapse All
-        </button>
-        <span className="view-toolbar__separator" />
-        <button className="view-toolbar__btn" onClick={onJumpTop} disabled={messageCount === 0}>
-          Top
-        </button>
-        <button className="view-toolbar__btn" onClick={onJumpBottom} disabled={messageCount === 0}>
-          Bottom
-        </button>
+        <CommonButtons onExpandAll={onExpandAll} onCollapseAll={onCollapseAll} />
         <span className="view-toolbar__separator" />
         {hasTeams && (
           <button className="view-toolbar__btn" onClick={onOpenTeams}>
@@ -96,17 +109,19 @@ export function ViewToolbar({
             <BackIcon /> Back to Messages
           </button>
         )}
+        <CommonButtons onExpandAll={onExpandAll} onCollapseAll={onCollapseAll} />
         <RightButtons onOpenSettings={onOpenSettings} />
       </div>
     );
   }
 
-  // detail, team, debug — back button + right buttons
+  // detail, team, debug
   return (
     <div className="view-toolbar">
       <button className="view-toolbar__btn" onClick={onBackToList}>
         <BackIcon /> Back to Messages
       </button>
+      <CommonButtons onExpandAll={onExpandAll} onCollapseAll={onCollapseAll} />
       <RightButtons onOpenSettings={onOpenSettings} />
     </div>
   );

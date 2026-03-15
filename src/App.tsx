@@ -351,12 +351,9 @@ export function App() {
         view={view}
         hasTeams={session.teams.length > 0}
         hasSession={!!session.sessionPath}
-        messageCount={session.messages.length}
         onGoToSessions={goToSessions}
         onExpandAll={expandAll}
         onCollapseAll={collapseAll}
-        onJumpTop={jumpToTop}
-        onJumpBottom={jumpToBottom}
         onOpenTeams={openTeams}
         onOpenDebug={openDebug}
         onBackToList={backToList}

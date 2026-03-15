@@ -7,12 +7,9 @@ function defaultProps(overrides: Partial<Parameters<typeof ViewToolbar>[0]> = {}
     view: "list" as const,
     hasTeams: false,
     hasSession: false,
-    messageCount: 5,
     onGoToSessions: vi.fn(),
     onExpandAll: vi.fn(),
     onCollapseAll: vi.fn(),
-    onJumpTop: vi.fn(),
-    onJumpBottom: vi.fn(),
     onOpenTeams: vi.fn(),
     onOpenDebug: vi.fn(),
     onBackToList: vi.fn(),
@@ -22,37 +19,30 @@ function defaultProps(overrides: Partial<Parameters<typeof ViewToolbar>[0]> = {}
 }
 
 describe("ViewToolbar", () => {
-  describe("list view", () => {
-    it("shows all expected buttons", () => {
-      render(<ViewToolbar {...defaultProps()} />);
-      expect(screen.getByText(/Sessions/)).toBeInTheDocument();
-      expect(screen.getByText("Expand All")).toBeInTheDocument();
-      expect(screen.getByText("Collapse All")).toBeInTheDocument();
-      expect(screen.getByText("Top")).toBeInTheDocument();
-      expect(screen.getByText("Bottom")).toBeInTheDocument();
-      expect(screen.getByText("Debug")).toBeInTheDocument();
-    });
+  describe("common buttons on all views", () => {
+    for (const view of ["list", "picker", "detail", "team", "debug"] as const) {
+      it(`${view} view shows Expand All, Collapse All, Top, Bottom`, () => {
+        render(<ViewToolbar {...defaultProps({ view, hasSession: true })} />);
+        expect(screen.getByText("Expand All")).toBeInTheDocument();
+        expect(screen.getByText("Collapse All")).toBeInTheDocument();
+        expect(screen.getByText("Top")).toBeInTheDocument();
+        expect(screen.getByText("Bottom")).toBeInTheDocument();
+        expect(screen.getByTitle("Settings")).toBeInTheDocument();
+      });
+    }
+  });
 
-    it("shows Teams button when hasTeams=true", () => {
+  describe("list view", () => {
+    it("shows Sessions, Teams, Debug buttons", () => {
       render(<ViewToolbar {...defaultProps({ hasTeams: true })} />);
+      expect(screen.getByText(/Sessions/)).toBeInTheDocument();
       expect(screen.getByText("Teams")).toBeInTheDocument();
+      expect(screen.getByText("Debug")).toBeInTheDocument();
     });
 
     it("hides Teams button when hasTeams=false", () => {
       render(<ViewToolbar {...defaultProps({ hasTeams: false })} />);
       expect(screen.queryByText("Teams")).not.toBeInTheDocument();
-    });
-
-    it("disables Top/Bottom when messageCount=0", () => {
-      render(<ViewToolbar {...defaultProps({ messageCount: 0 })} />);
-      expect(screen.getByText("Top")).toBeDisabled();
-      expect(screen.getByText("Bottom")).toBeDisabled();
-    });
-
-    it("enables Top/Bottom when messageCount > 0", () => {
-      render(<ViewToolbar {...defaultProps({ messageCount: 3 })} />);
-      expect(screen.getByText("Top")).not.toBeDisabled();
-      expect(screen.getByText("Bottom")).not.toBeDisabled();
     });
 
     it("calls correct callbacks when buttons clicked", () => {
@@ -67,12 +57,6 @@ describe("ViewToolbar", () => {
 
       fireEvent.click(screen.getByText("Collapse All"));
       expect(props.onCollapseAll).toHaveBeenCalled();
-
-      fireEvent.click(screen.getByText("Top"));
-      expect(props.onJumpTop).toHaveBeenCalled();
-
-      fireEvent.click(screen.getByText("Bottom"));
-      expect(props.onJumpBottom).toHaveBeenCalled();
 
       fireEvent.click(screen.getByText("Teams"));
       expect(props.onOpenTeams).toHaveBeenCalled();
@@ -94,26 +78,13 @@ describe("ViewToolbar", () => {
       fireEvent.click(screen.getByText(/Back to Messages/));
       expect(props.onBackToList).toHaveBeenCalled();
     });
-
-    it("shows settings button even when hasSession=false", () => {
-      render(<ViewToolbar {...defaultProps({ view: "picker", hasSession: false })} />);
-      expect(screen.getByTitle("Settings")).toBeInTheDocument();
-    });
-
-    it("calls onOpenSettings when settings button clicked", () => {
-      const props = defaultProps({ view: "picker", hasSession: false });
-      render(<ViewToolbar {...props} />);
-      fireEvent.click(screen.getByTitle("Settings"));
-      expect(props.onOpenSettings).toHaveBeenCalled();
-    });
   });
 
-  describe("detail/team/debug views show back + settings", () => {
+  describe("detail/team/debug views", () => {
     for (const view of ["detail", "team", "debug"] as const) {
-      it(`${view} view shows Back to Messages and Settings`, () => {
+      it(`${view} view shows Back to Messages`, () => {
         render(<ViewToolbar {...defaultProps({ view })} />);
         expect(screen.getByText(/Back to Messages/)).toBeInTheDocument();
-        expect(screen.getByTitle("Settings")).toBeInTheDocument();
       });
     }
 

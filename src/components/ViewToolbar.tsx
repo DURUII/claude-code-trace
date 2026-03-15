@@ -1,6 +1,8 @@
 import type { ViewState } from "../types";
 import { BackIcon } from "./Icons";
 import { IoMdSettings } from "react-icons/io";
+import { isTauri } from "../lib/isTauri";
+import { invoke } from "../lib/invoke";
 
 interface ViewToolbarProps {
   view: ViewState;
@@ -18,11 +20,20 @@ interface ViewToolbarProps {
   onOpenSettings: () => void;
 }
 
-function SettingsButton({ onClick }: { onClick: () => void }) {
+function RightButtons({ onOpenSettings }: { onOpenSettings: () => void }) {
   return (
     <>
       <span className="view-toolbar__spacer" />
-      <button className="view-toolbar__btn" onClick={onClick} title="Settings">
+      {isTauri && (
+        <button
+          className="view-toolbar__btn"
+          onClick={() => invoke("switch_to_browser").catch(() => {})}
+          title="Open in browser and hide this window"
+        >
+          Open in Browser
+        </button>
+      )}
+      <button className="view-toolbar__btn" onClick={onOpenSettings} title="Settings">
         <IoMdSettings />
       </button>
     </>
@@ -72,7 +83,7 @@ export function ViewToolbar({
         <button className="view-toolbar__btn" onClick={onOpenDebug}>
           Debug
         </button>
-        <SettingsButton onClick={onOpenSettings} />
+        <RightButtons onOpenSettings={onOpenSettings} />
       </div>
     );
   }
@@ -85,7 +96,7 @@ export function ViewToolbar({
             <BackIcon /> Back to Messages
           </button>
         )}
-        <SettingsButton onClick={onOpenSettings} />
+        <RightButtons onOpenSettings={onOpenSettings} />
       </div>
     );
   }

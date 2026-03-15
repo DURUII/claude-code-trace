@@ -13,6 +13,7 @@ permissions = [
   "allow-get-project-dirs",
   "allow-get-settings",
   "allow-set-projects-dir",
+  "allow-switch-to-browser",
 ]
 
 [[permission]]
@@ -74,3 +75,8 @@ commands.allow = ["get_settings"]
 identifier = "allow-set-projects-dir"
 description = "Allow setting the projects directory"
 commands.allow = ["set_projects_dir"]
+
+[[permission]]
+identifier = "allow-switch-to-browser"
+description = "Allow switching to browser mode"
+commands.allow = ["switch_to_browser"]

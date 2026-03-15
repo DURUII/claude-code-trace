@@ -4,9 +4,11 @@
 
 # Claude Code Trace
 
-A desktop GUI for reading Claude Code session JSONL files. Built with [Tauri v2](https://v2.tauri.app/) (Rust backend + React frontend).
+A desktop + web viewer for Claude Code session JSONL files. Built with [Tauri v2](https://v2.tauri.app/) (Rust backend + React frontend).
 
-Reads session logs from `~/.claude/` and renders them as a scrollable conversation with expandable tool calls, token counts, and live tailing. Inspired by [tail-claude](https://github.com/kylesnowschwartz/tail-claude).
+Reads session logs from `~/.claude/` and renders them as a scrollable conversation with expandable tool calls, token counts, and live tailing. Works as a **native desktop app** (macOS, Linux, Windows) or as a **web app** in any browser. Inspired by [tail-claude](https://github.com/kylesnowschwartz/tail-claude).
+
+> **Web mode:** Run with `--web` to start the backend without opening a desktop window, then open `http://localhost:1420` in any browser. The frontend communicates with the Rust backend via HTTP (port 11423) + Server-Sent Events.
 
 <p align="center">
   <img src="demo.gif" alt="Demo" />
@@ -52,7 +54,20 @@ The built app will be in `src-tauri/target/release/bundle/`.
 
 ## Usage
 
+### Desktop
+
 Launch the app to open the session picker. It auto-discovers all sessions from `~/.claude/projects/`.
+
+### Web
+
+Launch in web-only mode (no desktop window):
+
+```bash
+claude-code-trace --web
+# then open http://localhost:1420
+```
+
+Or simply open **http://localhost:1420** in any browser while the desktop app is running.
 
 Select a session to view the conversation. Click messages to expand tool calls, or open the detail view for full inspection.
 

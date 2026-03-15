@@ -2145,10 +2145,10 @@
       "description": "Permission identifier",
       "oneOf": [
         {
-          "description": "Default permissions for all claude-code-trace commands\n#### This default permission set includes:\n\n- `allow-discover-sessions`\n- `allow-load-session`\n- `allow-get-session-meta`\n- `allow-watch-session`\n- `allow-unwatch-session`\n- `allow-get-git-info`\n- `allow-get-debug-log`\n- `allow-watch-picker`\n- `allow-unwatch-picker`\n- `allow-get-project-dirs`\n- `allow-get-settings`\n- `allow-set-projects-dir`",
+          "description": "Default permissions for all claude-code-trace commands\n#### This default permission set includes:\n\n- `allow-discover-sessions`\n- `allow-load-session`\n- `allow-get-session-meta`\n- `allow-watch-session`\n- `allow-unwatch-session`\n- `allow-get-git-info`\n- `allow-get-debug-log`\n- `allow-watch-picker`\n- `allow-unwatch-picker`\n- `allow-get-project-dirs`\n- `allow-get-settings`\n- `allow-set-projects-dir`\n- `allow-switch-to-browser`",
           "type": "string",
           "const": "default",
-          "markdownDescription": "Default permissions for all claude-code-trace commands\n#### This default permission set includes:\n\n- `allow-discover-sessions`\n- `allow-load-session`\n- `allow-get-session-meta`\n- `allow-watch-session`\n- `allow-unwatch-session`\n- `allow-get-git-info`\n- `allow-get-debug-log`\n- `allow-watch-picker`\n- `allow-unwatch-picker`\n- `allow-get-project-dirs`\n- `allow-get-settings`\n- `allow-set-projects-dir`"
+          "markdownDescription": "Default permissions for all claude-code-trace commands\n#### This default permission set includes:\n\n- `allow-discover-sessions`\n- `allow-load-session`\n- `allow-get-session-meta`\n- `allow-watch-session`\n- `allow-unwatch-session`\n- `allow-get-git-info`\n- `allow-get-debug-log`\n- `allow-watch-picker`\n- `allow-unwatch-picker`\n- `allow-get-project-dirs`\n- `allow-get-settings`\n- `allow-set-projects-dir`\n- `allow-switch-to-browser`"
         },
         {
           "description": "Allow discovering sessions across project directories",
@@ -2197,6 +2197,12 @@
           "type": "string",
           "const": "allow-set-projects-dir",
           "markdownDescription": "Allow setting the projects directory"
+        },
+        {
+          "description": "Allow switching to browser mode",
+          "type": "string",
+          "const": "allow-switch-to-browser",
+          "markdownDescription": "Allow switching to browser mode"
         },
         {
           "description": "Allow stopping picker watching",

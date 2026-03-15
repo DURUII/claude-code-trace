@@ -1,7 +1,7 @@
 {
-  "productName": "tail-claude-gui",
+  "productName": "Claude Code Trace",
   "version": "0.3.2",
-  "identifier": "com.tailclaude.gui",
+  "identifier": "com.claudecodetrace.app",
   "build": {
     "devUrl": "http://localhost:1420",
     "frontendDist": "../dist",
@@ -11,7 +11,7 @@
   "app": {
     "windows": [
       {
-        "title": "tail-claude-gui",
+        "title": "Claude Code Trace",
         "width": 1200,
         "height": 800,
         "minWidth": 600,

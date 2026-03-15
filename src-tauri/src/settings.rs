@@ -10,7 +10,7 @@ pub struct Settings {
 
 fn settings_path() -> Result<PathBuf, String> {
     let config = dirs::config_dir().ok_or("no config directory")?;
-    Ok(config.join("tail-claude-gui").join("settings.json"))
+    Ok(config.join("claude-code-trace").join("settings.json"))
 }
 
 pub fn load_settings() -> Settings {

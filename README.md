@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="icon.png" alt="tail-claude-gui" width="128" />
+  <img src="icon.png" alt="claude-code-trace" width="128" />
 </p>
 
-# tail-claude-gui
+# Claude Code Trace
 
 A desktop GUI for reading Claude Code session JSONL files. Built with [Tauri v2](https://v2.tauri.app/) (Rust backend + React frontend).
 
@@ -26,12 +26,12 @@ Reads session logs from `~/.claude/` and renders them as a scrollable conversati
 > **macOS:** The app is unsigned. After installing, remove the quarantine attribute:
 >
 > ```bash
-> xattr -cr /Applications/tail-claude-gui.app
+> xattr -cr /Applications/Claude\ Code\ Trace.app
 > ```
 
 ### Download
 
-Grab the latest release from [Releases](https://github.com/delexw/tail-claude-gui/releases):
+Grab the latest release from [Releases](https://github.com/delexw/claude-code-trace/releases):
 
 | Platform | File                            |
 | -------- | ------------------------------- |
@@ -42,8 +42,8 @@ Grab the latest release from [Releases](https://github.com/delexw/tail-claude-gu
 ### Build from source
 
 ```bash
-git clone git@github.com:delexw/tail-claude-gui.git
-cd tail-claude-gui
+git clone git@github.com:delexw/claude-code-trace.git
+cd claude-code-trace
 npm install
 npm run tauri build
 ```
@@ -125,7 +125,7 @@ git tag v0.2.0
 git push origin v0.2.0
 ```
 
-This creates a draft release with macOS, Linux, and Windows artifacts attached. Review and publish it from the [Releases](https://github.com/delexw/tail-claude-gui/releases) page.
+This creates a draft release with macOS, Linux, and Windows artifacts attached. Review and publish it from the [Releases](https://github.com/delexw/claude-code-trace/releases) page.
 
 ## Attribution
 

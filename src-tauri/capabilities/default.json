@@ -1,6 +1,6 @@
 {
   "identifier": "default",
-  "description": "Default permissions for tail-claude-gui",
+  "description": "Default permissions for claude-code-trace",
   "windows": ["main"],
   "permissions": [
     "core:default",

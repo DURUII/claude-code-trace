@@ -10,5 +10,5 @@ fn main() {
         }
     }));
 
-    tail_claude_gui_lib::run()
+    claude_code_trace_lib::run()
 }

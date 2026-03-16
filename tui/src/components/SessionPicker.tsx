@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { Box, Text, useInput } from "ink";
+import { useMemo } from "react";
+import { Box, Text } from "ink";
 import { Spinner } from "@inkjs/ui";
 import type { SessionInfo } from "../api.js";
 import {
@@ -18,9 +18,7 @@ interface SessionPickerProps {
   sessions: SessionInfo[];
   loading: boolean;
   error: string;
-  inputDisabled?: boolean;
-  onSelect: (session: SessionInfo) => void;
-  onQuit: () => void;
+  selectedIndex: number;
 }
 
 interface DateGroup {
@@ -60,92 +58,14 @@ function groupByDate(items: SessionInfo[]): DateGroup[] {
     .map((category) => ({ category, items: groups[category] }));
 }
 
-export function SessionPicker({
-  sessions,
-  loading,
-  error,
-  inputDisabled,
-  onSelect,
-  onQuit,
-}: SessionPickerProps) {
-  const [selected, setSelected] = useState(0);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchActive, setSearchActive] = useState(false);
-
-  const filtered = useMemo(() => {
-    if (!searchQuery) return sessions;
-    const q = searchQuery.toLowerCase();
-    return sessions.filter(
-      (s) =>
-        (s.first_message || "").toLowerCase().includes(q) ||
-        s.session_id.toLowerCase().includes(q) ||
-        (s.cwd || "").toLowerCase().includes(q),
-    );
-  }, [sessions, searchQuery]);
-
-  const dateGroups = useMemo(() => groupByDate(filtered), [filtered]);
-
-  const flatList = useMemo(() => {
-    const items: SessionInfo[] = [];
-    for (const group of dateGroups) {
-      for (const item of group.items) {
-        items.push(item);
-      }
-    }
-    return items;
-  }, [dateGroups]);
+export function SessionPicker({ sessions, loading, error, selectedIndex }: SessionPickerProps) {
+  const dateGroups = useMemo(() => groupByDate(sessions), [sessions]);
 
   const totalTokens = useMemo(
     () => sessions.reduce((sum, s) => sum + s.total_tokens, 0),
     [sessions],
   );
   const totalCost = useMemo(() => sessions.reduce((sum, s) => sum + s.cost_usd, 0), [sessions]);
-
-  useInput((input, key) => {
-    if (inputDisabled) return;
-    if (searchActive) {
-      if (key.escape) {
-        setSearchActive(false);
-        setSearchQuery("");
-        return;
-      }
-      if (key.return) {
-        setSearchActive(false);
-        if (flatList.length > 0) setSelected(0);
-        return;
-      }
-      if (key.backspace || key.delete) {
-        setSearchQuery((q) => q.slice(0, -1));
-        setSelected(0);
-        return;
-      }
-      if (input && !key.ctrl && !key.meta) {
-        setSearchQuery((q) => q + input);
-        setSelected(0);
-      }
-      return;
-    }
-
-    if (loading || flatList.length === 0) {
-      if (input === "q") onQuit();
-      return;
-    }
-    if (input === "j" || key.downArrow) {
-      setSelected((i) => Math.min(i + 1, flatList.length - 1));
-    } else if (input === "k" || key.upArrow) {
-      setSelected((i) => Math.max(i - 1, 0));
-    } else if (input === "G") {
-      setSelected(flatList.length - 1);
-    } else if (input === "g") {
-      setSelected(0);
-    } else if (key.return) {
-      onSelect(flatList[selected]);
-    } else if (input === "/") {
-      setSearchActive(true);
-    } else if (input === "q") {
-      onQuit();
-    }
-  });
 
   if (loading) {
     return (
@@ -166,8 +86,8 @@ export function SessionPicker({
   const rows = process.stdout.rows || 24;
   const windowSize = Math.max(6, rows - 6);
   const half = Math.floor(windowSize / 2);
-  let start = Math.max(0, selected - half);
-  const end = Math.min(flatList.length, start + windowSize);
+  let start = Math.max(0, selectedIndex - half);
+  const end = Math.min(sessions.length, start + windowSize);
   if (end - start < windowSize) start = Math.max(0, end - windowSize);
 
   let flatIdx = 0;
@@ -185,27 +105,10 @@ export function SessionPicker({
         borderTop={false}
         borderColor={colors.border}
       >
-        <Text bold>Sessions ({filtered.length})</Text>
+        <Text bold>Sessions ({sessions.length})</Text>
         {totalTokens > 0 && <Text dimColor>{formatTokens(totalTokens)} tok</Text>}
         {totalCost > 0 && <Text color={colors.tokenHigh}>{formatCost(totalCost)}</Text>}
       </Box>
-
-      {/* Search bar */}
-      {searchActive && (
-        <Box paddingX={1}>
-          <Text color={colors.accent} bold>
-            / {searchQuery}
-          </Text>
-          <Text dimColor>█</Text>
-        </Box>
-      )}
-      {!searchActive && searchQuery && (
-        <Box paddingX={1}>
-          <Text dimColor>
-            filter: "{searchQuery}" ({filtered.length} matches)
-          </Text>
-        </Box>
-      )}
 
       {/* Session cards grouped by date */}
       {dateGroups.map((group) => {
@@ -220,7 +123,6 @@ export function SessionPicker({
 
         return (
           <Box key={group.category} flexDirection="column">
-            {/* Date group header */}
             {firstInGroup >= start && firstInGroup < end && (
               <Box paddingX={1} marginTop={0}>
                 <Text dimColor bold>
@@ -230,7 +132,7 @@ export function SessionPicker({
             )}
             {groupItems.map(({ session: s, idx }) => {
               if (idx < start || idx >= end) return null;
-              const isSelected = idx === selected;
+              const isSelected = idx === selectedIndex;
               const model = s.model ? shortModel(s.model) : "";
               const borderClr = isSelected
                 ? colors.accent
@@ -240,10 +142,8 @@ export function SessionPicker({
 
               return (
                 <Box key={s.path} flexDirection="row">
-                  {/* Left accent border */}
                   <Text color={borderClr}>{isSelected ? "▸" : "│"}</Text>
                   <Box flexDirection="column" flexGrow={1} paddingLeft={1}>
-                    {/* Top line: preview + active badge */}
                     <Box gap={1}>
                       <Text
                         bold={isSelected}
@@ -254,7 +154,6 @@ export function SessionPicker({
                       </Text>
                       {s.is_ongoing && <OngoingDots count={3} />}
                     </Box>
-                    {/* Meta line */}
                     <Box gap={1}>
                       {model && <Text color={modelColor(s.model)}>{model}</Text>}
                       <Text dimColor>{s.turn_count} turns</Text>
@@ -275,9 +174,9 @@ export function SessionPicker({
         );
       })}
 
-      {filtered.length === 0 && !loading && (
+      {sessions.length === 0 && !loading && (
         <Box paddingX={1}>
-          <Text dimColor>{searchQuery ? "No matching sessions" : "No sessions found"}</Text>
+          <Text dimColor>No sessions found</Text>
         </Box>
       )}
     </Box>

@@ -135,9 +135,9 @@ export function DetailView({
                       {isExpanded ? IconExpanded : IconCollapsed} {getItemIcon(item)}{" "}
                       {getItemName(item).padEnd(maxNameLen)}
                     </Text>
-                    {/* Summary */}
+                    {/* Summary — "- " separator matches Go TUI */}
                     {getItemSummary(item) ? (
-                      <Text dimColor> {truncate(getItemSummary(item), summaryMaxLen)}</Text>
+                      <Text dimColor> - {truncate(getItemSummary(item), summaryMaxLen)}</Text>
                     ) : null}
                     {/* Spacer */}
                     <Box flexGrow={1} />

@@ -74,8 +74,8 @@ export function DetailView({
   const { start, end } = stableWindow("detail", selectedItem, items.length, windowSize);
   const visible = items.slice(start, end);
 
-  // Fixed-width name column — computed from ALL items so it doesn't shift (matches Go TUI's 12-char pad)
-  const maxNameLen = Math.max(12, ...items.map((it) => getItemName(it).length));
+  // Fixed-width name column — computed from ALL items, capped to prevent squeezing the summary
+  const maxNameLen = Math.min(24, Math.max(12, ...items.map((it) => getItemName(it).length)));
 
   return (
     <Box flexDirection="column">
@@ -130,7 +130,11 @@ export function DetailView({
                   {/* Item header row — Go TUI aligned format */}
                   <Box>
                     {/* Cursor + icon + name (fixed width) */}
-                    <Text bold={isSelected} color={isSelected ? colors.accent : accentClr}>
+                    <Text
+                      bold={isSelected}
+                      color={isSelected ? colors.accent : accentClr}
+                      wrap="truncate"
+                    >
                       {isExpanded ? IconExpanded : IconCollapsed} {getItemIcon(item)}{" "}
                       {getItemName(item).padEnd(maxNameLen)}
                     </Text>

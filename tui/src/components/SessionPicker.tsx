@@ -15,7 +15,6 @@ import { colors } from "../lib/theme.js";
 import { stableWindow } from "../lib/window.js";
 import {
   IconSelected2,
-  IconBarSingle,
   IconBranch,
   IconChat,
   IconClock,
@@ -141,7 +140,7 @@ export function SessionPicker({ sessions, loading, error, selectedIndex }: Sessi
                   {/* Line 1: message preview */}
                   <Box>
                     <Text color={isSelected ? colors.accent : colors.border}>
-                      {isSelected ? ` ${IconSelected2} ` : ` ${IconBarSingle} `}
+                      {isSelected ? `${IconSelected2} ` : "  "}
                     </Text>
                     {s.is_ongoing && (
                       <>
@@ -160,7 +159,7 @@ export function SessionPicker({ sessions, loading, error, selectedIndex }: Sessi
                   {/* Line 2: metadata with Nerd Font icons — matches Go TUI */}
                   <Box>
                     <Text color={isSelected ? colors.accent : colors.border}>
-                      {isSelected ? ` ${IconSelected2} ` : ` ${IconBarSingle} `}
+                      {isSelected ? `${IconSelected2} ` : "  "}
                     </Text>
                     {model && <Text color={modelColor(s.model)}>{model.padEnd(10)}</Text>}
                     {s.git_branch ? (

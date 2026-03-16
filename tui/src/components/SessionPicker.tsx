@@ -1,7 +1,8 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Box, Text, useInput } from "ink";
 import { Spinner } from "@inkjs/ui";
 import { api, type SessionInfo } from "../api.js";
+import { useSSE } from "../useSSE.js";
 import {
   formatTokens,
   formatCost,
@@ -65,20 +66,32 @@ export function SessionPicker({ onSelect, onQuit }: SessionPickerProps) {
   useEffect(() => {
     (async () => {
       try {
-        const dirs = await api.getProjectDirs();
-        if (dirs.length === 0) {
+        const d = await api.getProjectDirs();
+        if (d.length === 0) {
           setError("No project directories found. Run the desktop app first to configure.");
           setLoading(false);
           return;
         }
-        const list = await api.discoverSessions(dirs);
+        const list = await api.discoverSessions(d);
         setSessions(list);
+        await api.watchPicker(d);
       } catch (e) {
         setError(`Cannot connect to backend. Is the app running?\n${e}`);
       }
       setLoading(false);
     })();
+    return () => {
+      api.unwatchPicker().catch(() => {});
+    };
   }, []);
+
+  // Live updates to session list
+  useSSE<{ sessions: SessionInfo[] }>(
+    "picker-update",
+    useCallback((payload) => {
+      if (payload.sessions) setSessions(payload.sessions);
+    }, []),
+  );
 
   const filtered = useMemo(() => {
     if (!searchQuery) return sessions;

@@ -54,16 +54,9 @@ export function MessageList({
     return indices;
   }, [messages.length]);
 
-  if (messages.length === 0) {
-    return (
-      <div className="message-list">
-        <div className="message-list__empty">No messages loaded</div>
-      </div>
-    );
-  }
-
   return (
     <div className="message-list" ref={listRef}>
+      {messages.length === 0 && <div className="message-list__empty">No messages loaded</div>}
       {ordered.map((i) => {
         const msg = messages[i];
         if (msg.role === "compact") {

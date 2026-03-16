@@ -55,6 +55,11 @@ function modeColor(mode: string): string {
   }
 }
 
+/** Middle dot separator — matches Go TUI's spaceBetween pattern. */
+function Dot() {
+  return <Text color={colors.textMuted}> · </Text>;
+}
+
 export function InfoBar({ meta, messages, sessionTotals, sessionPath, ongoing }: InfoBarProps) {
   const projectName = shortPath(meta.cwd);
   const sessionId = sessionPath.split("/").pop()?.replace(".jsonl", "") || "";
@@ -63,42 +68,64 @@ export function InfoBar({ meta, messages, sessionTotals, sessionPath, ongoing }:
   const ctxPct = useMemo(() => contextPercent(messages), [messages]);
 
   return (
-    <Box
-      paddingX={1}
-      borderStyle="single"
-      borderLeft={false}
-      borderRight={false}
-      borderColor={colors.border}
-    >
-      {/* Left: project, session, branch, mode */}
-      <Box gap={1}>
+    <Box paddingX={1} borderStyle="round" borderColor={colors.border}>
+      {/* Left: path · branch · mode — Go TUI layout */}
+      <Box>
         {projectName ? (
           <Text bold color={colors.accent}>
             {projectName}
           </Text>
         ) : null}
-        {sessionId ? <Text color={colors.textDim}>{sessionId.slice(0, 8)}</Text> : null}
-        {branch ? <Text color={colors.gitBranch}>{branch}</Text> : null}
+        {sessionId ? (
+          <>
+            <Dot />
+            <Text color={colors.textDim}>{sessionId.slice(0, 8)}</Text>
+          </>
+        ) : null}
+        {branch ? (
+          <>
+            <Dot />
+            <Text color={colors.gitBranch}>
+              {"\uE0A0"} {branch}
+            </Text>
+          </>
+        ) : null}
         {mode && mode !== "default" ? (
-          <Text color={modeColor(mode)} bold>
-            [{shortMode(mode)}]
-          </Text>
+          <>
+            <Dot />
+            <Text color={modeColor(mode)} bold>
+              {shortMode(mode)}
+            </Text>
+          </>
         ) : null}
       </Box>
 
       {/* Spacer */}
       <Box flexGrow={1} />
 
-      {/* Right: ctx, tokens, cost, ongoing */}
-      <Box gap={1}>
-        {ctxPct >= 0 ? <Text color={getContextColor(ctxPct)}>ctx {ctxPct}%</Text> : null}
+      {/* Right: ctx% · tokens · cost · ongoing */}
+      <Box>
+        {ctxPct >= 0 ? (
+          <Text color={getContextColor(ctxPct)}>ctx {ctxPct}%</Text>
+        ) : null}
         {sessionTotals.total_tokens > 0 ? (
-          <Text color={colors.textDim}>{formatTokens(sessionTotals.total_tokens)} tok</Text>
+          <>
+            <Dot />
+            <Text color={colors.textDim}>{formatTokens(sessionTotals.total_tokens)} tok</Text>
+          </>
         ) : null}
         {sessionTotals.cost_usd > 0 ? (
-          <Text color={colors.tokenHigh}>{formatCost(sessionTotals.cost_usd)}</Text>
+          <>
+            <Dot />
+            <Text color={colors.tokenHigh}>{formatCost(sessionTotals.cost_usd)}</Text>
+          </>
         ) : null}
-        {ongoing ? <BrailleSpinner /> : null}
+        {ongoing ? (
+          <>
+            {" "}
+            <BrailleSpinner />
+          </>
+        ) : null}
       </Box>
     </Box>
   );

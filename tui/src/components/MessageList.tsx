@@ -2,6 +2,7 @@ import { Box, Text } from "ink";
 import type { DisplayMessage } from "../api.js";
 import { truncate, roleColor, roleIcon, shortModel, modelColor, firstLine } from "../lib/format.js";
 import { colors, getRoleBorderColor, getItemColor, getTeamColor } from "../lib/theme.js";
+import { getItemIcon, getItemName } from "../lib/items.js";
 import { StatsBar, statsFromMessage } from "./StatsBar.js";
 import { BrailleSpinner } from "./OngoingDots.js";
 import { stableWindow } from "../lib/window.js";
@@ -127,52 +128,26 @@ export function MessageList({ messages, selectedIndex, expandedSet, ongoing }: M
                       {item.subagent_messages.length > 0 ? "┃" : "│"}
                     </Text>
                     <Box paddingLeft={1}>
-                      {item.item_type === "ToolCall" ? (
-                        <Text color={getItemColor("ToolCall", !!item.tool_error)}>
-                          ⚙ {item.tool_name}
-                          {item.tool_summary
-                            ? ` — ${truncate(item.tool_summary, bodyWidth - 20)}`
-                            : ""}
-                        </Text>
-                      ) : item.item_type === "Thinking" ? (
-                        <Text color={colors.itemThinking}>
-                          ◆ {truncate(item.text, bodyWidth - 10)}
-                        </Text>
-                      ) : item.item_type === "Output" ? (
-                        <Text color={colors.itemOutput}>
-                          ▪ {truncate(item.text, bodyWidth - 10)}
-                        </Text>
-                      ) : item.item_type === "Subagent" ? (
-                        <Text
-                          color={item.team_color ? getTeamColor(item.team_color) : colors.itemAgent}
-                        >
-                          ✦ {item.subagent_type || "Agent"}
-                          {item.subagent_desc
+                      <Text
+                        color={
+                          item.team_color
+                            ? getTeamColor(item.team_color)
+                            : getItemColor(item.item_type, !!item.tool_error)
+                        }
+                      >
+                        {getItemIcon(item)} {getItemName(item)}
+                        {item.tool_summary
+                          ? ` — ${truncate(item.tool_summary, bodyWidth - 20)}`
+                          : item.subagent_desc
                             ? ` — ${truncate(item.subagent_desc, bodyWidth - 20)}`
-                            : ""}
-                          {item.subagent_ongoing ? " ●" : ""}
-                          {item.subagent_messages.length > 0
-                            ? ` [${item.subagent_messages.length} msg]`
-                            : ""}
-                        </Text>
-                      ) : item.item_type === "TeammateMessage" ? (
-                        <Text
-                          color={
-                            item.team_color ? getTeamColor(item.team_color) : colors.itemTeammate
-                          }
-                        >
-                          ◈ {item.team_member_name || "Teammate"}:{" "}
-                          {truncate(item.text, bodyWidth - 20)}
-                        </Text>
-                      ) : item.item_type === "HookEvent" ? (
-                        <Text color={colors.itemHook}>
-                          ⚡ {item.hook_event}: {item.hook_name}
-                        </Text>
-                      ) : (
-                        <Text color={colors.textDim}>
-                          {item.item_type}: {truncate(item.text, bodyWidth - 20)}
-                        </Text>
-                      )}
+                            : item.text && item.item_type !== "ToolCall"
+                              ? ` ${truncate(item.text, bodyWidth - 20)}`
+                              : ""}
+                        {item.subagent_ongoing ? " ●" : ""}
+                        {item.subagent_messages.length > 0
+                          ? ` [${item.subagent_messages.length} msg]`
+                          : ""}
+                      </Text>
                     </Box>
                   </Box>
                 ))}

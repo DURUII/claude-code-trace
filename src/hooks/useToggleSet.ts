@@ -1,26 +1,2 @@
-import { useState, useCallback } from "react";
-
-export function useToggleSet() {
-  const [set, setSet] = useState<Set<number>>(new Set());
-
-  const toggle = useCallback((i: number) => {
-    setSet((prev) => {
-      const next = new Set(prev);
-      if (next.has(i)) next.delete(i);
-      else next.add(i);
-      return next;
-    });
-  }, []);
-
-  const clear = useCallback(() => setSet(new Set()), []);
-
-  const addAll = useCallback((indices: number[]) => {
-    setSet((prev) => {
-      const next = new Set(prev);
-      indices.forEach((i) => next.add(i));
-      return next;
-    });
-  }, []);
-
-  return { set, toggle, clear, addAll };
-}
+// Re-export from shared — single source of truth for both web and TUI.
+export { useToggleSet } from "../../shared/hooks/useToggleSet";

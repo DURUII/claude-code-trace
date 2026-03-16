@@ -80,15 +80,8 @@ export function formatDuration(ms: number): string {
   return `${secs.toFixed(1)}s`;
 }
 
-/**
- * Returns the project display name from a cwd path.
- * Extracts the last path segment.
- */
-export function shortPath(cwd: string, _gitBranch?: string): string {
-  if (!cwd) return "";
-  const parts = cwd.split("/").filter(Boolean);
-  return parts[parts.length - 1] ?? cwd;
-}
+// shortPath, projectKey, projectDisplayName — from shared/format.ts
+export { shortPath, projectKey, projectDisplayName } from "../../shared/format";
 
 /**
  * Returns a human-readable label for a permission mode.
@@ -207,21 +200,4 @@ export function formatJson(input: string): string {
   } catch {
     return input;
   }
-}
-
-/**
- * Extract the encoded project directory key from a session path.
- */
-export function projectKey(path: string): string {
-  const match = path.match(/[/\\]\.claude[/\\]projects[/\\]([^/\\]+)/);
-  return match ? match[1] : "unknown";
-}
-
-/**
- * Decode a Claude projects directory key (e.g. "-Users-yang-liu-Envato-others-my-project")
- * back to a path and return the last segment via shortPath.
- */
-export function projectDisplayName(key: string): string {
-  const path = key.replace(/^-/, "/").replaceAll("-", "/");
-  return shortPath(path) || key;
 }

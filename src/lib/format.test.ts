@@ -209,8 +209,8 @@ describe("shortPath", () => {
     expect(shortPath("/")).toBe("/");
   });
 
-  it("ignores optional gitBranch parameter", () => {
-    expect(shortPath("/Users/foo/project", "main")).toBe("project");
+  it("returns last segment regardless of path depth", () => {
+    expect(shortPath("/Users/foo/project")).toBe("project");
   });
 });
 

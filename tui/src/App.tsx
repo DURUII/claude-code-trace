@@ -11,6 +11,7 @@ import type {
 } from "./api.js";
 import { api } from "./api.js";
 import { useSSE } from "./useSSE.js";
+import { useToggleSet } from "../../shared/hooks/useToggleSet.js";
 import { SessionPicker } from "./components/SessionPicker.js";
 import { MessageList } from "./components/MessageList.js";
 import { DetailView } from "./components/DetailView.js";
@@ -19,14 +20,26 @@ import { DebugViewer } from "./components/DebugViewer.js";
 import { InfoBar } from "./components/InfoBar.js";
 import { KeybindBar } from "./components/KeybindBar.js";
 import { ProjectTree, useProjectEntries } from "./components/ProjectTree.js";
+import { projectKey } from "./lib/projectKey.js";
 
 type ViewState = "picker" | "list" | "detail" | "team" | "debug";
+
+const EMPTY_META: SessionMeta = { cwd: "", git_branch: "", permission_mode: "" };
+const EMPTY_TOTALS: SessionTotals = {
+  total_tokens: 0,
+  input_tokens: 0,
+  output_tokens: 0,
+  cache_read_tokens: 0,
+  cache_creation_tokens: 0,
+  cost_usd: 0,
+  model: "",
+};
 
 export function App() {
   const { exit } = useApp();
   const [view, setView] = useState<ViewState>("picker");
 
-  // ---------- Picker / project tree state (lifted from SessionPicker) ----------
+  // ---- Picker state ----
   const [allSessions, setAllSessions] = useState<SessionInfo[]>([]);
   const [pickerLoading, setPickerLoading] = useState(true);
   const [pickerError, setPickerError] = useState("");
@@ -36,16 +49,12 @@ export function App() {
 
   const projectEntries = useProjectEntries(allSessions);
 
-  // Filter sessions by selected project
   const pickerSessions = useMemo(() => {
     if (selectedProject === null) return allSessions;
-    return allSessions.filter((s) => {
-      const match = s.path.match(/[/\\]\.claude[/\\]projects[/\\]([^/\\]+)/);
-      return match ? match[1] === selectedProject : false;
-    });
+    return allSessions.filter((s) => projectKey(s.path) === selectedProject);
   }, [allSessions, selectedProject]);
 
-  // Discover sessions on mount
+  // Discover sessions on mount with retry
   useEffect(() => {
     let cancelled = false;
     const attempt = async (retries: number): Promise<void> => {
@@ -79,7 +88,6 @@ export function App() {
     };
   }, []);
 
-  // Live picker updates
   useSSE<{ sessions: SessionInfo[] }>(
     "picker-update",
     useCallback((payload) => {
@@ -87,55 +95,46 @@ export function App() {
     }, []),
   );
 
-  // ---------- Session state ----------
+  // ---- Session state ----
   const [sessionPath, setSessionPath] = useState("");
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [teams, setTeams] = useState<TeamSnapshot[]>([]);
   const [ongoing, setOngoing] = useState(false);
-  const [meta, setMeta] = useState<SessionMeta>({ cwd: "", git_branch: "", permission_mode: "" });
-  const [totals, setTotals] = useState<SessionTotals>({
-    total_tokens: 0,
-    input_tokens: 0,
-    output_tokens: 0,
-    cache_read_tokens: 0,
-    cache_creation_tokens: 0,
-    cost_usd: 0,
-    model: "",
-  });
+  const [meta, setMeta] = useState<SessionMeta>(EMPTY_META);
+  const [totals, setTotals] = useState<SessionTotals>(EMPTY_TOTALS);
   const [loading, setLoading] = useState(false);
-
-  // List view state
-  const [selectedMessage, setSelectedMessage] = useState(0);
-  const [expandedMessages, setExpandedMessages] = useState<Set<number>>(new Set());
-
-  // Detail view state
-  const [selectedItem, setSelectedItem] = useState(0);
-  const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set());
-
-  // Debug view state
   const [debugEntries, setDebugEntries] = useState<DebugEntry[]>([]);
+
+  // Shared toggle sets (from shared/hooks — used by both web and TUI)
+  const expandedMessages = useToggleSet();
+  const expandedItems = useToggleSet();
+
+  const [selectedMessage, setSelectedMessage] = useState(0);
+  const [selectedItem, setSelectedItem] = useState(0);
   const [debugSelected, setDebugSelected] = useState(0);
 
-  const loadSession = useCallback(async (path: string) => {
-    setLoading(true);
-    try {
-      const result = await api.loadSession(path);
-      setSessionPath(path);
-      setMessages(result.messages);
-      setTeams(result.teams);
-      setOngoing(result.ongoing);
-      setMeta(result.meta);
-      setTotals(result.session_totals);
-      setSelectedMessage(result.messages.length - 1);
-      setExpandedMessages(new Set());
-      await api.watchSession(path);
-    } catch {
-      // ignore
-    }
-    setLoading(false);
-  }, []);
+  const loadSession = useCallback(
+    async (path: string) => {
+      setLoading(true);
+      try {
+        const result = await api.loadSession(path);
+        setSessionPath(path);
+        setMessages(result.messages);
+        setTeams(result.teams);
+        setOngoing(result.ongoing);
+        setMeta(result.meta);
+        setTotals(result.session_totals);
+        setSelectedMessage(result.messages.length - 1);
+        expandedMessages.clear();
+        await api.watchSession(path);
+      } catch {
+        // ignore
+      }
+      setLoading(false);
+    },
+    [expandedMessages],
+  );
 
-  // Live session updates
   useSSE<{
     messages: DisplayMessage[];
     ongoing: boolean;
@@ -144,23 +143,15 @@ export function App() {
     session_totals: SessionTotals;
   }>(
     "session-update",
-    useCallback(
-      (payload) => {
-        setMessages((prev) => {
-          if (selectedMessage >= prev.length - 1) {
-            setSelectedMessage(payload.messages.length - 1);
-          }
-          return payload.messages;
-        });
-        setOngoing(payload.ongoing);
-        setTotals(payload.session_totals);
-        if (payload.teams) setTeams(payload.teams);
-        if (payload.permission_mode) {
-          setMeta((m) => ({ ...m, permission_mode: payload.permission_mode }));
-        }
-      },
-      [selectedMessage],
-    ),
+    useCallback((payload) => {
+      setMessages(payload.messages);
+      setOngoing(payload.ongoing);
+      setTotals(payload.session_totals);
+      if (payload.teams) setTeams(payload.teams);
+      if (payload.permission_mode) {
+        setMeta((m) => ({ ...m, permission_mode: payload.permission_mode }));
+      }
+    }, []),
   );
 
   useEffect(() => {
@@ -170,8 +161,8 @@ export function App() {
   }, []);
 
   const handleSelectSession = useCallback(
-    (session: SessionInfo) => {
-      loadSession(session.path);
+    (s: SessionInfo) => {
+      loadSession(s.path);
       setView("list");
       setSidebarFocused(false);
     },
@@ -183,27 +174,8 @@ export function App() {
     setSidebarFocused(false);
   }, []);
 
-  const toggleMessage = useCallback((idx: number) => {
-    setExpandedMessages((prev) => {
-      const next = new Set(prev);
-      if (next.has(idx)) next.delete(idx);
-      else next.add(idx);
-      return next;
-    });
-  }, []);
-
-  const toggleItem = useCallback((idx: number) => {
-    setExpandedItems((prev) => {
-      const next = new Set(prev);
-      if (next.has(idx)) next.delete(idx);
-      else next.add(idx);
-      return next;
-    });
-  }, []);
-
-  // ---------- Keyboard ----------
+  // ---- Keyboard ----
   useInput((input, key) => {
-    // Sidebar navigation (when focused)
     if (sidebarFocused && view === "picker") {
       if (input === "j" || key.downArrow) {
         setSidebarHighlight((i) => Math.min(i + 1, projectEntries.length - 1));
@@ -233,22 +205,21 @@ export function App() {
         } else if (input === "g") {
           setSelectedMessage(0);
         } else if (key.tab) {
-          toggleMessage(selectedMessage);
+          expandedMessages.toggle(selectedMessage);
         } else if (key.return) {
-          // Open detail for ANY message, not just ones with items
           if (messages.length > 0 && messages[selectedMessage]) {
             setSelectedItem(0);
-            setExpandedItems(new Set());
+            expandedItems.clear();
             setView("detail");
           }
         } else if (input === "e") {
-          const all = new Set<number>();
+          const indices: number[] = [];
           messages.forEach((m, i) => {
-            if (m.role === "claude") all.add(i);
+            if (m.role === "claude") indices.push(i);
           });
-          setExpandedMessages(all);
+          expandedMessages.addAll(indices);
         } else if (input === "c") {
-          setExpandedMessages(new Set());
+          expandedMessages.clear();
         } else if (input === "t") {
           if (teams.length > 0) setView("team");
         } else if (input === "d") {
@@ -272,13 +243,11 @@ export function App() {
         } else if (input === "k" || key.upArrow) {
           setSelectedItem((i) => Math.max(i - 1, 0));
         } else if (key.tab || key.return) {
-          toggleItem(selectedItem);
+          expandedItems.toggle(selectedItem);
         } else if (input === "e") {
-          const all = new Set<number>();
-          items.forEach((_it, i) => all.add(i));
-          setExpandedItems(all);
+          expandedItems.addAll(items.map((_it, i) => i));
         } else if (input === "c") {
-          setExpandedItems(new Set());
+          expandedItems.clear();
         } else if (input === "q" || key.escape) {
           setView("list");
         }
@@ -295,22 +264,17 @@ export function App() {
         break;
       }
       case "team": {
-        if (input === "q" || key.escape) {
-          setView("list");
-        }
+        if (input === "q" || key.escape) setView("list");
         break;
       }
       case "picker": {
-        if (input === "h" || key.leftArrow) {
-          setSidebarFocused(true);
-        }
-        // other picker keys handled by SessionPicker itself
+        if (input === "h" || key.leftArrow) setSidebarFocused(true);
         break;
       }
     }
   });
 
-  // ---------- Render ----------
+  // ---- Render ----
   const renderView = () => {
     switch (view) {
       case "picker":
@@ -336,7 +300,7 @@ export function App() {
           <MessageList
             messages={messages}
             selectedIndex={selectedMessage}
-            expandedSet={expandedMessages}
+            expandedSet={expandedMessages.set}
             ongoing={ongoing}
           />
         );
@@ -346,7 +310,7 @@ export function App() {
             <DetailView
               message={messages[selectedMessage]}
               selectedItem={selectedItem}
-              expandedItems={expandedItems}
+              expandedItems={expandedItems.set}
               ongoing={ongoing && selectedMessage === messages.length - 1}
             />
           );
@@ -361,7 +325,6 @@ export function App() {
 
   return (
     <Box flexDirection="column">
-      {/* Info bar */}
       {sessionPath && view !== "picker" && (
         <InfoBar
           meta={meta}
@@ -372,23 +335,18 @@ export function App() {
         />
       )}
 
-      {/* Main body: sidebar + content */}
       <Box flexDirection="row">
-        {/* Project tree sidebar — always visible */}
         <ProjectTree
           sessions={allSessions}
           selectedProject={selectedProject}
           highlightedIndex={sidebarHighlight}
           isFocused={sidebarFocused}
         />
-
-        {/* Main content */}
         <Box flexDirection="column" flexGrow={1}>
           {renderView()}
         </Box>
       </Box>
 
-      {/* Keybind bar */}
       <KeybindBar
         view={view}
         hasTeams={teams.length > 0}

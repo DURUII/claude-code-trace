@@ -11,23 +11,9 @@ interface ProjectTreeProps {
   isFocused: boolean;
 }
 
+import { projectKey, projectDisplayName, shortPath } from "../lib/projectKey.js";
+
 // ---- Tree building (mirrors web's ProjectTree.tsx) ----
-
-function projectKey(path: string): string {
-  const match = path.match(/[/\\]\.claude[/\\]projects[/\\]([^/\\]+)/);
-  return match ? match[1] : "unknown";
-}
-
-function shortPath(cwd: string): string {
-  if (!cwd) return "";
-  const parts = cwd.split("/").filter(Boolean);
-  return parts[parts.length - 1] ?? cwd;
-}
-
-function projectDisplayName(key: string): string {
-  const path = key.replace(/^-/, "/").replaceAll("-", "/");
-  return shortPath(path) || key;
-}
 
 interface ProjectNode {
   name: string;

@@ -31,6 +31,26 @@ export function truncate(s: string, max: number): string {
   return line.length > max ? line.slice(0, max - 1) + "…" : line;
 }
 
+/** Extract the encoded project directory key from a session path. */
+export function projectKey(path: string): string {
+  const match = path.match(/[/\\]\.claude[/\\]projects[/\\]([^/\\]+)/);
+  return match ? match[1] : "unknown";
+}
+
+/** Decode a project key to a display name (last path segment). */
+export function projectDisplayName(key: string): string {
+  const path = key.replace(/^-/, "/").replaceAll("-", "/");
+  const parts = path.split("/").filter(Boolean);
+  return parts[parts.length - 1] ?? key;
+}
+
+/** Extract the last path segment. */
+export function shortPath(cwd: string): string {
+  if (!cwd) return "";
+  const parts = cwd.split("/").filter(Boolean);
+  return parts[parts.length - 1] ?? cwd;
+}
+
 /** Relative time: "3m ago", "2h ago", "5d ago" */
 export function timeAgo(iso: string): string {
   const ms = Date.now() - new Date(iso).getTime();

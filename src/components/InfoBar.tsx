@@ -21,7 +21,7 @@ export function InfoBar({
   sessionPath,
   ongoing,
 }: InfoBarProps) {
-  const projectName = shortPath(meta.cwd, meta.git_branch);
+  const projectName = shortPath(meta.cwd);
   const sessionId = sessionPath.split("/").pop()?.replace(".jsonl", "") || "";
   const branch = gitInfo?.branch || meta.git_branch;
   const dirty = gitInfo?.dirty ?? false;

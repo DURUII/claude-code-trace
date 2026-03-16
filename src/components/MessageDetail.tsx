@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useRef, useLayoutEffect, useEffect } from "react";
+import { useState, useCallback, useRef, useLayoutEffect, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import type { DisplayMessage, DisplayItem } from "../types";
 import { shortModel, formatTokens, formatDuration, formatExactTime } from "../lib/format";
@@ -544,12 +544,6 @@ function AgentListColumn({
     return () => onRegisterNav(null);
   }, [onRegisterNav]);
 
-  const ordered = useMemo(() => {
-    const indices: number[] = [];
-    for (let i = 0; i < messages.length; i++) indices.push(i);
-    return indices;
-  }, [messages.length]);
-
   return (
     <div
       className={`agent-panel${isFocused ? " agent-panel--focused" : ""}`}
@@ -564,8 +558,7 @@ function AgentListColumn({
       <AgentPanelHeader item={item} panelColor={panelColor} onClose={onClose} />
       <div className="agent-panel__content">
         <div className="agent-panel__list" ref={listRef}>
-          {ordered.map((i) => {
-            const msg = messages[i];
+          {messages.map((msg, i) => {
             if (msg.role === "compact") {
               return (
                 <div key={i} className="compact-separator">

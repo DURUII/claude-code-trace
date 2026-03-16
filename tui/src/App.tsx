@@ -273,21 +273,19 @@ export function App() {
       {renderView()}
 
       {/* Keybind bar */}
-      {view !== "picker" && (
-        <KeybindBar
-          view={view}
-          hasTeams={teams.length > 0}
-          position={
-            view === "list"
-              ? `${selectedMessage + 1}/${messages.length}`
-              : view === "detail"
-                ? `${selectedItem + 1}/${messages[selectedMessage]?.items.length || 0}`
-                : view === "debug"
-                  ? `${debugSelected + 1}/${debugEntries.length}`
-                  : undefined
-          }
-        />
-      )}
+      <KeybindBar
+        view={view}
+        hasTeams={teams.length > 0}
+        position={
+          view === "list"
+            ? `${selectedMessage + 1}/${messages.length}`
+            : view === "detail"
+              ? `${selectedItem + 1}/${messages[selectedMessage]?.items.length || 0}`
+              : view === "debug"
+                ? `${debugSelected + 1}/${debugEntries.length}`
+                : undefined
+        }
+      />
     </Box>
   );
 }

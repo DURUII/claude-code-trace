@@ -83,15 +83,24 @@ export function App() {
     session_totals: SessionTotals;
   }>(
     "session-update",
-    useCallback((payload) => {
-      setMessages(payload.messages);
-      setOngoing(payload.ongoing);
-      setTotals(payload.session_totals);
-      if (payload.teams) setTeams(payload.teams);
-      if (payload.permission_mode) {
-        setMeta((m) => ({ ...m, permission_mode: payload.permission_mode }));
-      }
-    }, []),
+    useCallback(
+      (payload) => {
+        setMessages((prev) => {
+          // Auto-scroll: if user was at the last message, advance to the new last
+          if (selectedMessage >= prev.length - 1) {
+            setSelectedMessage(payload.messages.length - 1);
+          }
+          return payload.messages;
+        });
+        setOngoing(payload.ongoing);
+        setTotals(payload.session_totals);
+        if (payload.teams) setTeams(payload.teams);
+        if (payload.permission_mode) {
+          setMeta((m) => ({ ...m, permission_mode: payload.permission_mode }));
+        }
+      },
+      [selectedMessage],
+    ),
   );
 
   // Cleanup watcher on unmount

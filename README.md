@@ -12,23 +12,25 @@ Reads session logs from `~/.claude/` and renders them as a scrollable conversati
   <img src="demo.gif" alt="Demo" />
 </p>
 
-## Quick Start (Web — no install needed)
+## Install
 
-Run from source in your browser — no `.dmg` or installer required:
+### Homebrew (macOS)
+
+```bash
+brew install --cask delexw/tap/claude-code-trace
+claude-code-trace --web   # opens browser automatically
+```
+
+### cargo install (any platform with Rust)
 
 ```bash
 git clone git@github.com:delexw/claude-code-trace.git
 cd claude-code-trace
-npm install
-npm run tauri dev -- -- --web
-# Open http://localhost:1420 in your browser
+./script/install.sh       # builds frontend + installs binary
+claude-code-trace --web   # opens browser automatically
 ```
 
-This starts the Rust backend (HTTP API on port 11423) + Vite dev server (frontend on port 1420) without opening a desktop window.
-
-## Install (Desktop App)
-
-### Download
+### Download pre-built
 
 Grab the latest release from [Releases](https://github.com/delexw/claude-code-trace/releases):
 
@@ -45,16 +47,14 @@ Grab the latest release from [Releases](https://github.com/delexw/claude-code-tr
 > xattr -cr /Applications/Claude\ Code\ Trace.app
 > ```
 
-### Build from source
+### Run from source (no install)
 
 ```bash
 git clone git@github.com:delexw/claude-code-trace.git
 cd claude-code-trace
 npm install
-npm run tauri build
+npm run tauri dev -- -- --web   # opens browser automatically
 ```
-
-The built app will be in `src-tauri/target/release/bundle/`.
 
 ## Requirements
 

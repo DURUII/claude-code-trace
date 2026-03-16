@@ -37,7 +37,8 @@ pub fn run() {
             tauri::async_runtime::spawn(http_api::start_http_server(handle));
 
             if web_only {
-                eprintln!("Web-only mode: open http://localhost:1420 in your browser");
+                eprintln!("Web-only mode: opening http://localhost:1420 in your browser...");
+                let _ = tauri_plugin_opener::open_url("http://localhost:1420", None::<&str>);
             } else {
                 // Show the main window (hidden by default in tauri.conf.json).
                 if let Some(w) = app.get_webview_window("main") {

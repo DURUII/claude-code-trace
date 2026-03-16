@@ -354,7 +354,7 @@ export function MessageDetail({
                 <div className="detail-items__section-label">Items ({msg.items.length})</div>
                 {msg.items.map((item, idx) => (
                   <DetailItem
-                    key={idx}
+                    key={`${idx}-${item.item_type}-${item.agent_id || item.tool_name}`}
                     ref={idx === selectedItem ? scrollRef : undefined}
                     item={item}
                     index={idx}
@@ -561,7 +561,7 @@ function AgentListColumn({
           {messages.map((msg, i) => {
             if (msg.role === "compact") {
               return (
-                <div key={i} className="compact-separator">
+                <div key={`${i}-compact`} className="compact-separator">
                   <div className="compact-separator__line">
                     <span className="compact-separator__rule" />
                     <span>{msg.content}</span>
@@ -575,7 +575,7 @@ function AgentListColumn({
             const isLast = i === messages.length - 1;
             return (
               <MessageItem
-                key={i}
+                key={`${i}-${msg.role}-${msg.timestamp}`}
                 ref={isSelected ? selectedRef : undefined}
                 message={msg}
                 index={i}
@@ -727,7 +727,7 @@ function AgentDetailColumn({
                 <div className="detail-items__section-label">Items ({msg.items.length})</div>
                 {msg.items.map((di, idx) => (
                   <DetailItem
-                    key={idx}
+                    key={`${idx}-${item.item_type}-${item.agent_id || item.tool_name}`}
                     ref={idx === selectedItem ? scrollRef : undefined}
                     item={di}
                     index={idx}

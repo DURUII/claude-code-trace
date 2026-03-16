@@ -60,9 +60,9 @@ describe("getItemName", () => {
   });
 
   it("returns team_member_name for TeammateMessage items", () => {
-    expect(
-      getItemName(makeItem({ item_type: "TeammateMessage", team_member_name: "Alice" })),
-    ).toBe("Alice");
+    expect(getItemName(makeItem({ item_type: "TeammateMessage", team_member_name: "Alice" }))).toBe(
+      "Alice",
+    );
   });
 
   it("returns hook_event for HookEvent items", () => {

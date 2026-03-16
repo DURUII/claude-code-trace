@@ -11,7 +11,9 @@ mod watcher;
 use tauri::Manager;
 
 pub fn run() {
-    let web_only = std::env::args().any(|a| a == "--web");
+    let args: Vec<String> = std::env::args().collect();
+    let web_only = args.iter().any(|a| a == "--web");
+    let headless = args.iter().any(|a| a == "--headless");
 
     tauri::Builder::default()
         .plugin(tauri_plugin_fs::init())
@@ -36,8 +38,10 @@ pub fn run() {
             let handle = app.handle().clone();
             tauri::async_runtime::spawn(http_api::start_http_server(handle));
 
-            if web_only {
-                eprintln!("Web-only mode: opening http://localhost:1420 in your browser...");
+            if headless {
+                eprintln!("Headless mode: HTTP API on http://127.0.0.1:11423");
+            } else if web_only {
+                eprintln!("Web mode: opening http://localhost:1420 in your browser...");
                 let _ = tauri_plugin_opener::open_url("http://localhost:1420", None::<&str>);
             } else {
                 // Show the main window (hidden by default in tauri.conf.json).

@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { shortModel, modelColor, roleColor, roleIcon, firstLine, formatJson } from "./format";
 import { colors } from "./theme";
+import { IconClaude, IconUser, IconSystem } from "./icons";
 
 describe("shortModel", () => {
   it("strips claude- prefix and formats version", () => {
@@ -47,9 +48,9 @@ describe("roleColor", () => {
 
 describe("roleIcon", () => {
   it("returns correct icons", () => {
-    expect(roleIcon("claude")).toBe("\uF167A"); // nf-md-robot
-    expect(roleIcon("user")).toBe("\uF007"); // nf-fa-user
-    expect(roleIcon("system")).toBe("\uF120"); // nf-fa-terminal
+    expect(roleIcon("claude")).toBe(IconClaude);
+    expect(roleIcon("user")).toBe(IconUser);
+    expect(roleIcon("system")).toBe(IconSystem);
     expect(roleIcon("other")).toBe(" ");
   });
 });

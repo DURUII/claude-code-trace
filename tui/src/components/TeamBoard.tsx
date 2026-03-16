@@ -2,6 +2,7 @@ import { Box, Text } from "ink";
 import type { TeamSnapshot } from "../api.js";
 import { colors, getTeamColor } from "../lib/theme.js";
 import { OngoingDot } from "./OngoingDots.js";
+import { IconTaskDone, IconTaskActive, IconTaskPending, IconTaskCancelled } from "../lib/icons.js";
 
 interface TeamBoardProps {
   teams: TeamSnapshot[];
@@ -10,15 +11,15 @@ interface TeamBoardProps {
 function statusIcon(status: string): string {
   switch (status.toLowerCase()) {
     case "completed":
-      return "✓";
+      return IconTaskDone;
     case "in_progress":
-      return "●";
+      return IconTaskActive;
     case "pending":
-      return "○";
+      return IconTaskPending;
     case "cancelled":
-      return "✗";
+      return IconTaskCancelled;
     default:
-      return "·";
+      return "\u00B7"; // middle dot
   }
 }
 

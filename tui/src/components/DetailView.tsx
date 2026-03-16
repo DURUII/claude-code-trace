@@ -14,6 +14,13 @@ import { getItemIcon, getItemName, getItemSummary } from "../lib/items.js";
 import { StatsBar, statsFromMessage } from "./StatsBar.js";
 import { BrailleSpinner, OngoingDot } from "./OngoingDots.js";
 import { stableWindow } from "../lib/window.js";
+import {
+  IconExpanded,
+  IconCollapsed,
+  IconBarSingle,
+  IconBarDouble,
+  IconSelected2,
+} from "../lib/icons.js";
 
 /** Max content width — matches Go TUI's maxContentWidth. */
 const MAX_CONTENT_WIDTH = 160;
@@ -73,14 +80,9 @@ export function DetailView({
   return (
     <Box flexDirection="column">
       {/* Message header — round border (matches Go TUI's RoundedBorder) */}
-      <Box
-        flexDirection="column"
-        borderStyle="round"
-        borderColor={colors.border}
-        paddingX={2}
-      >
+      <Box flexDirection="column" borderStyle="round" borderColor={colors.border} paddingX={2}>
         <Box gap={1}>
-          {depth > 0 ? <Text dimColor>{"\u25B8".repeat(depth)} </Text> : null}
+          {depth > 0 ? <Text dimColor>{IconSelected2.repeat(depth)} </Text> : null}
           <Text bold color={roleColor(message.role)}>
             {roleIcon(message.role)}{" "}
             {message.role === "claude" ? "Claude" : message.role === "user" ? "User" : "System"}
@@ -124,13 +126,13 @@ export function DetailView({
                 marginBottom={0}
               >
                 {/* Left accent — double bar for subagents with messages */}
-                <Text color={accentClr}>{hasAgent ? "┃" : "│"}</Text>
+                <Text color={accentClr}>{hasAgent ? IconBarDouble : IconBarSingle}</Text>
                 <Box flexDirection="column" flexGrow={1} paddingLeft={1}>
                   {/* Item header row — Go TUI aligned format */}
                   <Box>
                     {/* Cursor + icon + name (fixed width) */}
                     <Text bold={isSelected} inverse={isSelected} color={accentClr}>
-                      {isExpanded ? "\u02C5" : "\u02C3"} {getItemIcon(item)}{" "}
+                      {isExpanded ? IconExpanded : IconCollapsed} {getItemIcon(item)}{" "}
                       {getItemName(item).padEnd(maxNameLen)}
                     </Text>
                     {/* Summary */}

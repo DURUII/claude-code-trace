@@ -9,6 +9,7 @@ export {
 } from "../../../shared/format.js";
 
 import { colors, getModelColor as _getModelColor } from "./theme.js";
+import { IconClaude, IconUser, IconSystem } from "./icons.js";
 
 /** Turns "claude-opus-4-6" into "opus4.6". */
 export function shortModel(m: string): string {
@@ -48,11 +49,11 @@ export function roleColor(role: string): string {
 export function roleIcon(role: string): string {
   switch (role) {
     case "claude":
-      return "\uF167A"; // nf-md-robot (U+F167A)
+      return IconClaude;
     case "user":
-      return "\uF007"; // nf-fa-user (U+F007)
+      return IconUser;
     case "system":
-      return "\uF120"; // nf-fa-terminal (U+F120)
+      return IconSystem;
     default:
       return " ";
   }

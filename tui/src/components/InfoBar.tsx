@@ -4,6 +4,7 @@ import type { DisplayMessage, SessionMeta, SessionTotals } from "../api.js";
 import { formatTokens, formatCost } from "../lib/format.js";
 import { colors, getContextColor } from "../lib/theme.js";
 import { BrailleSpinner } from "./OngoingDots.js";
+import { IconBranch } from "../lib/icons.js";
 
 interface InfoBarProps {
   meta: SessionMeta;
@@ -86,7 +87,7 @@ export function InfoBar({ meta, messages, sessionTotals, sessionPath, ongoing }:
           <>
             <Dot />
             <Text color={colors.gitBranch}>
-              {"\uE0A0"} {branch}
+              {IconBranch} {branch}
             </Text>
           </>
         ) : null}

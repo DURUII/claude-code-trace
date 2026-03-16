@@ -3,6 +3,7 @@ import { Box, Text } from "ink";
 import type { SessionInfo } from "../api.js";
 import { colors } from "../lib/theme.js";
 import { OngoingDot } from "./OngoingDots.js";
+import { IconSelected2, IconGroup, IconTreeBranch } from "../lib/icons.js";
 import { buildFlatItems } from "../../../shared/projectTree.js";
 import type { FlatItem } from "../../../shared/projectTree.js";
 
@@ -57,9 +58,9 @@ export function ProjectTree({
           (item.key === selectedProject || (item.key === null && selectedProject === null));
         const isHighlighted = isFocused && idx === highlightedIndex;
         const indent = "  ".repeat(item.depth);
-        const branch = item.depth > 0 ? "└ " : "";
-        const icon = isSelected && !item.isGroup ? "▸" : " ";
-        const label = item.isGroup ? `⑃ ${item.name}` : item.name;
+        const branch = item.depth > 0 ? `${IconTreeBranch} ` : "";
+        const icon = isSelected && !item.isGroup ? IconSelected2 : " ";
+        const label = item.isGroup ? `${IconGroup} ${item.name}` : item.name;
 
         return (
           <Box key={item.key ?? "__all__"} flexDirection="column">

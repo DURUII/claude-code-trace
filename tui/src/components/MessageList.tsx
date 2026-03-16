@@ -6,6 +6,7 @@ import { getItemIcon, getItemName } from "../lib/items.js";
 import { StatsBar, statsFromMessage } from "./StatsBar.js";
 import { BrailleSpinner } from "./OngoingDots.js";
 import { stableWindow } from "../lib/window.js";
+import { IconSelected2, IconBarSingle, IconBarDouble, IconOngoingDot } from "../lib/icons.js";
 
 /** Max content width — matches Go TUI's maxContentWidth. */
 const MAX_CONTENT_WIDTH = 160;
@@ -85,7 +86,7 @@ export function MessageList({ messages, selectedIndex, expandedSet, ongoing }: M
                 inverse={isSelected}
                 color={isSelected ? colors.accent : roleColor(msg.role)}
               >
-                {isSelected ? "\u25B8 " : "  "}
+                {isSelected ? `${IconSelected2} ` : "  "}
                 {roleIcon(msg.role)} {msg.role === "claude" ? "Claude" : "User"}
               </Text>
               {model ? (
@@ -125,7 +126,7 @@ export function MessageList({ messages, selectedIndex, expandedSet, ongoing }: M
                     flexDirection="row"
                   >
                     <Text color={item.team_color ? getTeamColor(item.team_color) : colors.border}>
-                      {item.subagent_messages.length > 0 ? "┃" : "│"}
+                      {item.subagent_messages.length > 0 ? IconBarDouble : IconBarSingle}
                     </Text>
                     <Box paddingLeft={1}>
                       <Text
@@ -143,7 +144,7 @@ export function MessageList({ messages, selectedIndex, expandedSet, ongoing }: M
                             : item.text && item.item_type !== "ToolCall"
                               ? ` ${truncate(item.text, bodyWidth - 20)}`
                               : ""}
-                        {item.subagent_ongoing ? " ●" : ""}
+                        {item.subagent_ongoing ? ` ${IconOngoingDot}` : ""}
                         {item.subagent_messages.length > 0
                           ? ` [${item.subagent_messages.length} msg]`
                           : ""}

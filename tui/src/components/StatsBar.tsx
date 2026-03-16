@@ -3,6 +3,7 @@ import { Box, Text } from "ink";
 import type { DisplayMessage } from "../api.js";
 import { formatTokens, formatDuration } from "../lib/format.js";
 import { colors } from "../lib/theme.js";
+import { IconThinking, IconTool, IconOutput, IconSubagent, IconSpawn } from "../lib/icons.js";
 
 export interface Stats {
   tokens: number;
@@ -57,7 +58,7 @@ export function StatsBar({ stats }: { stats: Stats }) {
       id: "think",
       node: (
         <Text dimColor color={colors.itemThinking}>
-          {"\uF0EB"} {stats.thinkingCount}
+          {IconThinking} {stats.thinkingCount}
         </Text>
       ),
     });
@@ -67,7 +68,7 @@ export function StatsBar({ stats }: { stats: Stats }) {
       id: "tool",
       node: (
         <Text dimColor color={colors.itemTool}>
-          {"\uF0BE0"} {stats.toolCount}
+          {IconTool} {stats.toolCount}
         </Text>
       ),
     });
@@ -77,7 +78,7 @@ export function StatsBar({ stats }: { stats: Stats }) {
       id: "out",
       node: (
         <Text dimColor>
-          {"\uF0182"} {stats.outputCount}
+          {IconOutput} {stats.outputCount}
         </Text>
       ),
     });
@@ -87,7 +88,7 @@ export function StatsBar({ stats }: { stats: Stats }) {
       id: "agent",
       node: (
         <Text dimColor color={colors.itemAgent}>
-          {"\uF167A"} {stats.agentCount}
+          {IconSubagent} {stats.agentCount}
         </Text>
       ),
     });
@@ -95,7 +96,11 @@ export function StatsBar({ stats }: { stats: Stats }) {
   if (stats.spawnCount > 0) {
     parts.push({
       id: "spawn",
-      node: <Text dimColor>↗ {stats.spawnCount}</Text>,
+      node: (
+        <Text dimColor>
+          {IconSpawn} {stats.spawnCount}
+        </Text>
+      ),
     });
   }
   if (stats.tokens > 0) {

@@ -3,6 +3,7 @@ import type { DebugEntry } from "../api.js";
 import { truncate } from "../lib/format.js";
 import { colors } from "../lib/theme.js";
 import { stableWindow } from "../lib/window.js";
+import { IconCollapsed } from "../lib/icons.js";
 
 interface DebugViewerProps {
   entries: DebugEntry[];
@@ -57,7 +58,7 @@ export function DebugViewer({ entries, selectedIndex }: DebugViewerProps) {
           <Box key={entry.line_num}>
             {/* Cursor — matches Go TUI's chevron/bar pattern */}
             <Text inverse={isSelected} bold={isSelected}>
-              {isSelected ? "\u02C3" : " "}
+              {isSelected ? IconCollapsed : " "}
             </Text>
             {/* Timestamp with milliseconds (dim) */}
             <Text dimColor> {ts.padEnd(12)} </Text>

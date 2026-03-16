@@ -1,23 +1,32 @@
 import type { DisplayItem } from "../api.js";
 import { truncate } from "./format.js";
+import {
+  IconThinking,
+  IconOutput,
+  IconTool,
+  IconSubagent,
+  IconTeammate,
+  IconHook,
+  IconDot,
+} from "./icons.js";
 
 /** Nerd Font icon for a DisplayItem type (matches Go TUI). */
 export function getItemIcon(item: DisplayItem): string {
   switch (item.item_type) {
     case "Thinking":
-      return "\uF0EB"; // nf-fa-lightbulb (U+F0EB)
+      return IconThinking;
     case "Output":
-      return "\uF0182"; // nf-md-comment (U+F0182)
+      return IconOutput;
     case "ToolCall":
-      return item.tool_error ? "\uF0BE0" : "\uF0BE0"; // nf-md-wrench (U+F0BE0)
+      return IconTool;
     case "Subagent":
-      return "\uF167A"; // nf-md-robot (U+F167A)
+      return IconSubagent;
     case "TeammateMessage":
-      return "\uF167A"; // nf-md-robot (U+F167A)
+      return IconTeammate;
     case "HookEvent":
-      return "\uF0EB"; // nf-fa-lightbulb (U+F0EB)
+      return IconHook;
     default:
-      return "\u00B7"; // middle dot
+      return IconDot;
   }
 }
 

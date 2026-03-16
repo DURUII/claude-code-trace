@@ -13,6 +13,15 @@ import {
 import { OngoingDot } from "./OngoingDots.js";
 import { colors } from "../lib/theme.js";
 import { stableWindow } from "../lib/window.js";
+import {
+  IconSelected2,
+  IconBarSingle,
+  IconBranch,
+  IconChat,
+  IconClock,
+  IconToken,
+  IconSession,
+} from "../lib/icons.js";
 
 interface SessionPickerProps {
   sessions: SessionInfo[];
@@ -131,7 +140,7 @@ export function SessionPicker({ sessions, loading, error, selectedIndex }: Sessi
                   {/* Line 1: message preview */}
                   <Box>
                     <Text color={isSelected ? colors.accent : colors.border}>
-                      {isSelected ? " \u25B8 " : " \u2502 "}
+                      {isSelected ? ` ${IconSelected2} ` : ` ${IconBarSingle} `}
                     </Text>
                     {s.is_ongoing && (
                       <>
@@ -150,23 +159,23 @@ export function SessionPicker({ sessions, loading, error, selectedIndex }: Sessi
                   {/* Line 2: metadata with Nerd Font icons — matches Go TUI */}
                   <Box>
                     <Text color={isSelected ? colors.accent : colors.border}>
-                      {isSelected ? " \u25B8 " : " \u2502 "}
+                      {isSelected ? ` ${IconSelected2} ` : ` ${IconBarSingle} `}
                     </Text>
                     {model && <Text color={modelColor(s.model)}>{model.padEnd(10)}</Text>}
                     {s.git_branch ? (
                       <Text color={colors.gitBranch}>
                         {" "}
-                        {"\uE0A0"} {truncate(s.git_branch, 20)}
+                        {IconBranch} {truncate(s.git_branch, 20)}
                       </Text>
                     ) : null}
                     <Text dimColor>
                       {" "}
-                      {"\uF086"} {String(s.turn_count).padStart(3)}
+                      {IconChat} {String(s.turn_count).padStart(3)}
                     </Text>
                     {s.total_tokens > 0 && (
                       <Text color={s.total_tokens > 150000 ? colors.tokenHigh : colors.textDim}>
                         {" "}
-                        {"\uEDE8"} {formatTokens(s.total_tokens)}
+                        {IconToken} {formatTokens(s.total_tokens)}
                       </Text>
                     )}
                     {s.cost_usd > 0 && (
@@ -174,7 +183,11 @@ export function SessionPicker({ sessions, loading, error, selectedIndex }: Sessi
                     )}
                     <Text dimColor>
                       {" "}
-                      {"\uF017"} {timeAgo(s.mod_time)}
+                      {IconSession} {s.session_id.slice(0, 8)}
+                    </Text>
+                    <Text dimColor>
+                      {" "}
+                      {IconClock} {timeAgo(s.mod_time)}
                     </Text>
                   </Box>
                   {/* Thin separator — matches Go TUI's horizontal rule between cards.

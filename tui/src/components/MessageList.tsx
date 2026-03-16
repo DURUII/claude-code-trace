@@ -29,9 +29,10 @@ export function MessageList({ messages, selectedIndex, expandedSet, ongoing }: M
   const cols = process.stdout.columns || 80;
   const contentWidth = Math.min(cols, MAX_CONTENT_WIDTH);
   // Each message card: border top(1) + header(1) + body(1) + stats(1) + border bottom(1) = 5 lines
+  // Gap between cards: 1 line per card (gap={1}) → 6 lines per card slot
   // Account for InfoBar(3) + KeybindBar(3) = 6 lines of chrome
   const rows = process.stdout.rows || 24;
-  const windowSize = Math.max(3, Math.floor((rows - 6) / 5));
+  const windowSize = Math.max(3, Math.floor((rows - 6) / 6));
   const { start, end } = stableWindow("messages", selectedIndex, messages.length, windowSize);
   const visible = messages.slice(start, end);
 
@@ -44,7 +45,7 @@ export function MessageList({ messages, selectedIndex, expandedSet, ongoing }: M
   }
 
   return (
-    <Box flexDirection="column">
+    <Box flexDirection="column" paddingX={1} gap={1}>
       {visible.map((msg, i) => {
         const idx = start + i;
         const isSelected = idx === selectedIndex;
@@ -73,7 +74,7 @@ export function MessageList({ messages, selectedIndex, expandedSet, ongoing }: M
           );
         }
 
-        const bodyWidth = contentWidth - 8; // border(2) + paddingX(4) + accent bar(2)
+        const bodyWidth = contentWidth - 10; // outer paddingX(2) + border(2) + inner paddingX(4) + accent bar(2)
         const contentPreview = isExpanded
           ? msg.content
           : truncate(firstLine(msg.content), bodyWidth);

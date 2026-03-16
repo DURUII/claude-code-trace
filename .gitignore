@@ -27,3 +27,7 @@ debug/
 # OS
 .DS_Store
 Thumbs.db
+
+# TUI
+tui/node_modules
+tui/dist

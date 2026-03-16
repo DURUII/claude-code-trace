@@ -67,7 +67,15 @@ export function InfoBar({ meta, messages, sessionTotals, sessionPath, ongoing }:
   const ctxPct = useMemo(() => contextPercent(messages), [messages]);
 
   return (
-    <Box paddingX={1} gap={1}>
+    <Box
+      paddingX={1}
+      gap={1}
+      borderStyle="single"
+      borderLeft={false}
+      borderRight={false}
+      borderTop={false}
+      borderColor="gray"
+    >
       {projectName ? (
         <Text bold color="cyan">
           {projectName}

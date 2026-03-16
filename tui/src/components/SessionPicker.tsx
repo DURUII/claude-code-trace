@@ -106,7 +106,6 @@ export function SessionPicker({ onSelect, onQuit }: SessionPickerProps) {
 
   const dateGroups = useMemo(() => groupByDate(filtered), [filtered]);
 
-  // Build flat list for index tracking
   const flatList = useMemo(() => {
     const items: SessionInfo[] = [];
     for (const group of dateGroups) {
@@ -184,20 +183,29 @@ export function SessionPicker({ onSelect, onQuit }: SessionPickerProps) {
     );
   }
 
-  const windowSize = process.stdout.rows ? process.stdout.rows - 6 : 20;
+  // Each card takes ~3 rows; adjust window
+  const rowBudget = (process.stdout.rows || 24) - 6;
+  const windowSize = Math.max(4, Math.floor(rowBudget / 3));
   const half = Math.floor(windowSize / 2);
   let start = Math.max(0, selected - half);
   const end = Math.min(flatList.length, start + windowSize);
   if (end - start < windowSize) start = Math.max(0, end - windowSize);
 
-  // Determine which items are visible
   let flatIdx = 0;
   const cols = process.stdout.columns || 80;
 
   return (
-    <Box flexDirection="column" padding={1}>
-      {/* Header */}
-      <Box marginBottom={1} gap={2}>
+    <Box flexDirection="column">
+      {/* Header bar */}
+      <Box
+        paddingX={1}
+        gap={2}
+        borderStyle="single"
+        borderLeft={false}
+        borderRight={false}
+        borderTop={false}
+        borderColor="gray"
+      >
         <Text bold>Sessions ({filtered.length})</Text>
         {totalTokens > 0 && <Text dimColor>{formatTokens(totalTokens)} tok</Text>}
         {totalCost > 0 && <Text color="yellow">{formatCost(totalCost)}</Text>}
@@ -205,7 +213,7 @@ export function SessionPicker({ onSelect, onQuit }: SessionPickerProps) {
 
       {/* Search bar */}
       {searchActive && (
-        <Box marginBottom={1}>
+        <Box paddingX={1}>
           <Text color="blue" bold>
             / {searchQuery}
           </Text>
@@ -213,32 +221,31 @@ export function SessionPicker({ onSelect, onQuit }: SessionPickerProps) {
         </Box>
       )}
       {!searchActive && searchQuery && (
-        <Box marginBottom={1}>
+        <Box paddingX={1}>
           <Text dimColor>
             filter: "{searchQuery}" ({filtered.length} matches)
           </Text>
         </Box>
       )}
 
-      {/* Session list with date groups */}
+      {/* Session cards grouped by date */}
       {dateGroups.map((group) => {
         const groupItems = group.items.map((s) => {
           const idx = flatIdx++;
           return { session: s, idx };
         });
 
-        // Skip groups entirely outside viewport
         const firstInGroup = groupItems[0]?.idx ?? 0;
         const lastInGroup = groupItems[groupItems.length - 1]?.idx ?? 0;
         if (lastInGroup < start || firstInGroup >= end) return null;
 
         return (
           <Box key={group.category} flexDirection="column">
-            {/* Group header */}
+            {/* Date group header */}
             {firstInGroup >= start && firstInGroup < end && (
-              <Box marginBottom={0}>
+              <Box paddingX={1} marginTop={0}>
                 <Text dimColor bold>
-                  ─ {group.category} ─
+                  {group.category}
                 </Text>
               </Box>
             )}
@@ -246,35 +253,33 @@ export function SessionPicker({ onSelect, onQuit }: SessionPickerProps) {
               if (idx < start || idx >= end) return null;
               const isSelected = idx === selected;
               const model = s.model ? shortModel(s.model) : "";
+              const borderClr = isSelected ? "blue" : s.is_ongoing ? "green" : "gray";
 
               return (
-                <Box key={s.path} flexDirection="column">
-                  {/* Top line: icon + preview + active badge */}
-                  <Box>
-                    <Text
-                      inverse={isSelected}
-                      bold={isSelected}
-                      color={isSelected ? "blue" : undefined}
-                    >
-                      {isSelected ? "▸ " : "  "}
+                <Box
+                  key={s.path}
+                  flexDirection="column"
+                  borderStyle="single"
+                  borderLeft
+                  borderRight={false}
+                  borderTop={false}
+                  borderBottom={false}
+                  borderColor={borderClr}
+                  paddingLeft={1}
+                >
+                  {/* Top line: preview + active badge */}
+                  <Box gap={1}>
+                    <Text bold={isSelected} color={isSelected ? "blue" : undefined}>
+                      {truncate(s.first_message || s.session_id, cols - 24)}
                     </Text>
                     {s.is_ongoing && (
                       <Text color="green" bold>
-                        ●{" "}
-                      </Text>
-                    )}
-                    <Text inverse={isSelected} bold={isSelected} dimColor={!isSelected}>
-                      {truncate(s.first_message || s.session_id, cols - 20)}
-                    </Text>
-                    {s.is_ongoing && (
-                      <Text color="green" bold>
-                        {" "}
-                        ACTIVE
+                        ● ACTIVE
                       </Text>
                     )}
                   </Box>
-                  {/* Meta line: model, turns, tokens, cost, duration, time */}
-                  <Box paddingLeft={3} gap={1}>
+                  {/* Meta line */}
+                  <Box gap={1}>
                     {model && <Text color={modelColor(s.model)}>{model}</Text>}
                     <Text dimColor>{s.turn_count} turns</Text>
                     {s.total_tokens > 0 && <Text dimColor>{formatTokens(s.total_tokens)} tok</Text>}
@@ -290,7 +295,9 @@ export function SessionPicker({ onSelect, onQuit }: SessionPickerProps) {
       })}
 
       {filtered.length === 0 && !loading && (
-        <Text dimColor>{searchQuery ? "No matching sessions" : "No sessions found"}</Text>
+        <Box paddingX={1}>
+          <Text dimColor>{searchQuery ? "No matching sessions" : "No sessions found"}</Text>
+        </Box>
       )}
     </Box>
   );

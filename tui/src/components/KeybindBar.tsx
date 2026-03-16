@@ -65,7 +65,15 @@ export function KeybindBar({ view, hasTeams, position }: KeybindBarProps) {
   const keys = getKeys(view, hasTeams);
 
   return (
-    <Box paddingX={1} gap={1}>
+    <Box
+      paddingX={1}
+      gap={1}
+      borderStyle="single"
+      borderLeft={false}
+      borderRight={false}
+      borderBottom={false}
+      borderColor="gray"
+    >
       {keys.map((hint) => (
         <Box key={hint.key} gap={0}>
           <Text bold color="blue">

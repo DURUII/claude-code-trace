@@ -86,7 +86,6 @@ export function App() {
     useCallback(
       (payload) => {
         setMessages((prev) => {
-          // Auto-scroll: if user was at the last message, advance to the new last
           if (selectedMessage >= prev.length - 1) {
             setSelectedMessage(payload.messages.length - 1);
           }
@@ -267,7 +266,7 @@ export function App() {
 
   return (
     <Box flexDirection="column">
-      {/* Info bar — show when session loaded and not on picker */}
+      {/* Info bar — bordered top bar when session loaded */}
       {sessionPath && view !== "picker" && (
         <InfoBar
           meta={meta}
@@ -278,10 +277,12 @@ export function App() {
         />
       )}
 
-      {/* Main content */}
-      {renderView()}
+      {/* Main body — main content fills available space */}
+      <Box flexGrow={1} flexDirection="column">
+        {renderView()}
+      </Box>
 
-      {/* Keybind bar */}
+      {/* Keybind bar — bordered bottom bar */}
       <KeybindBar
         view={view}
         hasTeams={teams.length > 0}

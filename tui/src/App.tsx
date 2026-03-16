@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { Box, useApp, useInput } from "ink";
 import { Spinner } from "@inkjs/ui";
 import type {
@@ -173,161 +173,145 @@ export function App() {
   }, []);
 
   // ---- Single unified keyboard handler ----
-  // IMPORTANT: Only ONE useInput hook in the entire app to avoid Ink's
-  // event listener re-subscription race conditions with multiple hooks.
-  useInput(
-    useCallback(
-      (
-        input: string,
-        key: {
-          upArrow: boolean;
-          downArrow: boolean;
-          leftArrow: boolean;
-          rightArrow: boolean;
-          return: boolean;
-          escape: boolean;
-          tab: boolean;
-          backspace: boolean;
-          delete: boolean;
-          ctrl: boolean;
-          shift: boolean;
-          meta: boolean;
-        },
-      ) => {
-        // Sidebar navigation
-        if (sidebarFocused && view === "picker") {
-          if (input === "j" || key.downArrow) {
-            setSidebarHighlight((i) => Math.min(i + 1, projectEntries.length - 1));
-          } else if (input === "k" || key.upArrow) {
-            setSidebarHighlight((i) => Math.max(i - 1, 0));
-          } else if (key.return) {
-            const entry = projectEntries[sidebarHighlight];
-            if (entry && !entry.isGroup) handleSelectProject(entry.key);
-          } else if (input === "l" || key.rightArrow || key.escape) {
-            setSidebarFocused(false);
-          } else if (input === "q") {
-            exit();
-          }
-          return;
-        }
+  // Use a ref so the useInput effect never re-subscribes.
+  // Ink's useInput puts inputHandler in its effect deps — if we pass a
+  // new function each render, the stdin listener is removed and re-added
+  // on every render, causing keystrokes to be lost in the gap.
+  type Key = {
+    upArrow: boolean;
+    downArrow: boolean;
+    leftArrow: boolean;
+    rightArrow: boolean;
+    return: boolean;
+    escape: boolean;
+    tab: boolean;
+    backspace: boolean;
+    delete: boolean;
+    ctrl: boolean;
+    shift: boolean;
+    meta: boolean;
+  };
+  const inputHandlerRef = useRef<(input: string, key: Key) => void>(() => {});
+  inputHandlerRef.current = (input: string, key: Key) => {
+    // Sidebar navigation
+    if (sidebarFocused && view === "picker") {
+      if (input === "j" || key.downArrow) {
+        setSidebarHighlight((i) => Math.min(i + 1, projectEntries.length - 1));
+      } else if (input === "k" || key.upArrow) {
+        setSidebarHighlight((i) => Math.max(i - 1, 0));
+      } else if (key.return) {
+        const entry = projectEntries[sidebarHighlight];
+        if (entry && !entry.isGroup) handleSelectProject(entry.key);
+      } else if (input === "l" || key.rightArrow || key.escape) {
+        setSidebarFocused(false);
+      } else if (input === "q") {
+        exit();
+      }
+      return;
+    }
 
-        switch (view) {
-          case "list": {
-            if (input === "h" || key.leftArrow) {
-              setSidebarFocused(true);
-            } else if (input === "j" || key.downArrow) {
-              setSelectedMessage((i) => Math.min(i + 1, messages.length - 1));
-            } else if (input === "k" || key.upArrow) {
-              setSelectedMessage((i) => Math.max(i - 1, 0));
-            } else if (input === "G") {
-              setSelectedMessage(messages.length - 1);
-            } else if (input === "g") {
-              setSelectedMessage(0);
-            } else if (key.tab) {
-              expandedMessages.toggle(selectedMessage);
-            } else if (key.return) {
-              if (messages.length > 0 && messages[selectedMessage]) {
-                setSelectedItem(0);
-                expandedItems.clear();
-                setView("detail");
-              }
-            } else if (input === "e") {
-              const indices: number[] = [];
-              messages.forEach((m, i) => {
-                if (m.role === "claude") indices.push(i);
-              });
-              expandedMessages.addAll(indices);
-            } else if (input === "c") {
-              expandedMessages.clear();
-            } else if (input === "t") {
-              if (teams.length > 0) setView("team");
-            } else if (input === "d") {
-              if (sessionPath) {
-                api
-                  .getDebugLog(sessionPath)
-                  .then(setDebugEntries)
-                  .catch(() => {});
-                setDebugSelected(0);
-                setView("debug");
-              }
-            } else if (input === "q" || key.escape) {
-              setView("picker");
-            }
-            break;
+    switch (view) {
+      case "list": {
+        if (input === "h" || key.leftArrow) {
+          setSidebarFocused(true);
+        } else if (input === "j" || key.downArrow) {
+          setSelectedMessage((i) => Math.min(i + 1, messages.length - 1));
+        } else if (input === "k" || key.upArrow) {
+          setSelectedMessage((i) => Math.max(i - 1, 0));
+        } else if (input === "G") {
+          setSelectedMessage(messages.length - 1);
+        } else if (input === "g") {
+          setSelectedMessage(0);
+        } else if (key.tab) {
+          expandedMessages.toggle(selectedMessage);
+        } else if (key.return) {
+          if (messages.length > 0 && messages[selectedMessage]) {
+            setSelectedItem(0);
+            expandedItems.clear();
+            setView("detail");
           }
-          case "detail": {
-            const items = messages[selectedMessage]?.items || [];
-            if (input === "j" || key.downArrow) {
-              setSelectedItem((i) => Math.min(i + 1, items.length - 1));
-            } else if (input === "k" || key.upArrow) {
-              setSelectedItem((i) => Math.max(i - 1, 0));
-            } else if (key.tab || key.return) {
-              expandedItems.toggle(selectedItem);
-            } else if (input === "e") {
-              expandedItems.addAll(items.map((_it, i) => i));
-            } else if (input === "c") {
-              expandedItems.clear();
-            } else if (input === "q" || key.escape) {
-              setView("list");
-            }
-            break;
+        } else if (input === "e") {
+          const indices: number[] = [];
+          messages.forEach((m, i) => {
+            if (m.role === "claude") indices.push(i);
+          });
+          expandedMessages.addAll(indices);
+        } else if (input === "c") {
+          expandedMessages.clear();
+        } else if (input === "t") {
+          if (teams.length > 0) setView("team");
+        } else if (input === "d") {
+          if (sessionPath) {
+            api
+              .getDebugLog(sessionPath)
+              .then(setDebugEntries)
+              .catch(() => {});
+            setDebugSelected(0);
+            setView("debug");
           }
-          case "debug": {
-            if (input === "j" || key.downArrow) {
-              setDebugSelected((i) => Math.min(i + 1, debugEntries.length - 1));
-            } else if (input === "k" || key.upArrow) {
-              setDebugSelected((i) => Math.max(i - 1, 0));
-            } else if (input === "q" || key.escape) {
-              setView("list");
-            }
-            break;
-          }
-          case "team": {
-            if (input === "q" || key.escape) setView("list");
-            break;
-          }
-          case "picker": {
-            if (input === "h" || key.leftArrow) setSidebarFocused(true);
-            // j/k/Enter/q etc for picker are handled here now
-            else if (input === "j" || key.downArrow) {
-              setSelectedMessage((i) => Math.min(i + 1, pickerSessions.length - 1));
-            } else if (input === "k" || key.upArrow) {
-              setSelectedMessage((i) => Math.max(i - 1, 0));
-            } else if (input === "G") {
-              setSelectedMessage(pickerSessions.length - 1);
-            } else if (input === "g") {
-              setSelectedMessage(0);
-            } else if (key.return) {
-              if (pickerSessions[selectedMessage]) {
-                handleSelectSession(pickerSessions[selectedMessage]);
-              }
-            } else if (input === "q") {
-              exit();
-            }
-            break;
-          }
+        } else if (input === "q" || key.escape) {
+          setView("picker");
         }
-      },
-      [
-        view,
-        sidebarFocused,
-        projectEntries,
-        sidebarHighlight,
-        handleSelectProject,
-        handleSelectSession,
-        messages,
-        teams,
-        sessionPath,
-        expandedMessages,
-        expandedItems,
-        selectedMessage,
-        selectedItem,
-        debugEntries,
-        pickerSessions,
-        exit,
-      ],
-    ),
-  );
+        break;
+      }
+      case "detail": {
+        const items = messages[selectedMessage]?.items || [];
+        if (input === "j" || key.downArrow) {
+          setSelectedItem((i) => Math.min(i + 1, items.length - 1));
+        } else if (input === "k" || key.upArrow) {
+          setSelectedItem((i) => Math.max(i - 1, 0));
+        } else if (key.tab || key.return) {
+          expandedItems.toggle(selectedItem);
+        } else if (input === "e") {
+          expandedItems.addAll(items.map((_it, i) => i));
+        } else if (input === "c") {
+          expandedItems.clear();
+        } else if (input === "q" || key.escape) {
+          setView("list");
+        }
+        break;
+      }
+      case "debug": {
+        if (input === "j" || key.downArrow) {
+          setDebugSelected((i) => Math.min(i + 1, debugEntries.length - 1));
+        } else if (input === "k" || key.upArrow) {
+          setDebugSelected((i) => Math.max(i - 1, 0));
+        } else if (input === "q" || key.escape) {
+          setView("list");
+        }
+        break;
+      }
+      case "team": {
+        if (input === "q" || key.escape) setView("list");
+        break;
+      }
+      case "picker": {
+        if (input === "h" || key.leftArrow) setSidebarFocused(true);
+        // j/k/Enter/q etc for picker are handled here now
+        else if (input === "j" || key.downArrow) {
+          setSelectedMessage((i) => Math.min(i + 1, pickerSessions.length - 1));
+        } else if (input === "k" || key.upArrow) {
+          setSelectedMessage((i) => Math.max(i - 1, 0));
+        } else if (input === "G") {
+          setSelectedMessage(pickerSessions.length - 1);
+        } else if (input === "g") {
+          setSelectedMessage(0);
+        } else if (key.return) {
+          if (pickerSessions[selectedMessage]) {
+            handleSelectSession(pickerSessions[selectedMessage]);
+          }
+        } else if (input === "q") {
+          exit();
+        }
+        break;
+      }
+    }
+  };
+  // Stable function reference — never changes, so Ink's useInput effect never re-subscribes.
+  const stableHandler = useCallback((input: string, key: Key) => {
+    inputHandlerRef.current(input, key);
+  }, []);
+  useInput(stableHandler);
 
   // ---- Render ----
   const renderView = () => {

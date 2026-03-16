@@ -27,7 +27,7 @@ interface MessageListProps {
 
 export function MessageList({ messages, selectedIndex, expandedSet, ongoing }: MessageListProps) {
   const cols = process.stdout.columns || 80;
-  const contentWidth = Math.min(cols, MAX_CONTENT_WIDTH);
+  const contentWidth = Math.min(cols - 2, MAX_CONTENT_WIDTH); // -2 for outer paddingX={1}
   // Each message card: border top(1) + header(1) + body(1) + stats(1) + border bottom(1) = 5 lines
   // Gap between cards: 1 line per card (gap={1}) → 6 lines per card slot
   // Account for InfoBar(3) + KeybindBar(3) = 6 lines of chrome

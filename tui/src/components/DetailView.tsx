@@ -65,7 +65,7 @@ export function DetailView({
   depth = 0,
 }: DetailViewProps) {
   const cols = process.stdout.columns || 80;
-  const contentWidth = Math.min(cols, MAX_CONTENT_WIDTH);
+  const contentWidth = Math.min(cols - 2, MAX_CONTENT_WIDTH); // -2 for outer paddingX={1}
   const stats = statsFromMessage(message);
   const items = message.items;
 

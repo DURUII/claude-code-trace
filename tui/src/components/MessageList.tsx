@@ -14,12 +14,10 @@ interface MessageListProps {
 
 export function MessageList({ messages, selectedIndex, expandedSet, ongoing }: MessageListProps) {
   const cols = process.stdout.columns || 80;
-  // Estimate visible messages based on terminal height.
-  // Collapsed messages are ~3 lines, but we want to fill the viewport
-  // without leaving empty space. Over-estimating slightly is fine —
-  // Ink will just clip the bottom.
+  // Each collapsed message is ~3 lines (header + content + stats).
+  // Window in item count so Ink output fits the terminal.
   const rows = process.stdout.rows || 24;
-  const windowSize = Math.max(6, rows - 4);
+  const windowSize = Math.max(4, Math.floor((rows - 4) / 3));
 
   let start = Math.max(0, selectedIndex - Math.floor(windowSize / 2));
   const end = Math.min(messages.length, start + windowSize);

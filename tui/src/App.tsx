@@ -107,6 +107,7 @@ export function App() {
   const expandedMessages = useToggleSet();
   const expandedItems = useToggleSet();
 
+  const [pickerSelected, setPickerSelected] = useState(0);
   const [selectedMessage, setSelectedMessage] = useState(0);
   const [selectedItem, setSelectedItem] = useState(0);
   const [debugSelected, setDebugSelected] = useState(0);
@@ -287,18 +288,17 @@ export function App() {
       }
       case "picker": {
         if (input === "h" || key.leftArrow) setSidebarFocused(true);
-        // j/k/Enter/q etc for picker are handled here now
         else if (input === "j" || key.downArrow) {
-          setSelectedMessage((i) => Math.min(i + 1, pickerSessions.length - 1));
+          setPickerSelected((i) => Math.min(i + 1, pickerSessions.length - 1));
         } else if (input === "k" || key.upArrow) {
-          setSelectedMessage((i) => Math.max(i - 1, 0));
+          setPickerSelected((i) => Math.max(i - 1, 0));
         } else if (input === "G") {
-          setSelectedMessage(pickerSessions.length - 1);
+          setPickerSelected(pickerSessions.length - 1);
         } else if (input === "g") {
-          setSelectedMessage(0);
+          setPickerSelected(0);
         } else if (key.return) {
-          if (pickerSessions[selectedMessage]) {
-            handleSelectSession(pickerSessions[selectedMessage]);
+          if (pickerSessions[pickerSelected]) {
+            handleSelectSession(pickerSessions[pickerSelected]);
           }
         } else if (input === "q") {
           exit();
@@ -322,7 +322,7 @@ export function App() {
             sessions={pickerSessions}
             loading={pickerLoading}
             error={pickerError}
-            selectedIndex={selectedMessage}
+            selectedIndex={pickerSelected}
           />
         );
       case "list":
@@ -395,7 +395,7 @@ export function App() {
               : view === "debug"
                 ? `${debugSelected + 1}/${debugEntries.length}`
                 : view === "picker"
-                  ? `${selectedMessage + 1}/${pickerSessions.length}`
+                  ? `${pickerSelected + 1}/${pickerSessions.length}`
                   : undefined
         }
       />

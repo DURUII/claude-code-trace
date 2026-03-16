@@ -22,8 +22,9 @@ export function DetailView({ message, selectedItem, expandedItems, ongoing }: De
   const cols = process.stdout.columns || 80;
   const stats = statsFromMessage(message);
 
+  // Each item is ~2 lines (header + optional summary). Account for message header (~4 lines).
   const rows = process.stdout.rows || 24;
-  const windowSize = Math.max(4, rows - 8);
+  const windowSize = Math.max(3, Math.floor((rows - 6) / 2));
 
   const items = message.items;
   let start = Math.max(0, selectedItem - Math.floor(windowSize / 2));

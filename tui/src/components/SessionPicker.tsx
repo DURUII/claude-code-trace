@@ -83,8 +83,9 @@ export function SessionPicker({ sessions, loading, error, selectedIndex }: Sessi
     );
   }
 
+  // Each session card is ~3 lines (title + meta). Window in item count, not row count.
   const rows = process.stdout.rows || 24;
-  const windowSize = Math.max(6, rows - 6);
+  const windowSize = Math.max(4, Math.floor((rows - 4) / 3));
   const half = Math.floor(windowSize / 2);
   let start = Math.max(0, selectedIndex - half);
   const end = Math.min(sessions.length, start + windowSize);

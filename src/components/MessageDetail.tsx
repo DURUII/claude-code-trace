@@ -148,18 +148,20 @@ export function MessageDetail({
     if (bodyRef.current) {
       savedScroll.current = bodyRef.current.scrollTop;
     }
+    let closed = false;
     setPanelStack((prev) => {
       if (
         prev.length === 1 &&
         prev[0].kind === "agent-list" &&
         prev[0].item.agent_id === item.agent_id
       ) {
+        closed = true;
         return [];
       }
       return [{ kind: "agent-list", item, key: item.agent_id || `panel-0` }];
     });
     setColumnWidths((prev) => [prev[0]]);
-    setFocusedColumn(1);
+    setFocusedColumn(closed ? 0 : 1);
   }, []);
 
   const openSubagentAt = useCallback((depth: number, item: DisplayItem) => {

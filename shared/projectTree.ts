@@ -3,8 +3,8 @@
  * Shared between the web UI and TUI — no React, no DOM.
  */
 
-import type { SessionInfo } from "./types";
-import { projectKey, projectDisplayName, shortPath } from "./format";
+import type { SessionInfo } from "./types.js";
+import { projectKey, projectDisplayName, shortPath } from "./format.js";
 
 // ---- ProjectNode ----
 

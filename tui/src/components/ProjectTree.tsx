@@ -13,8 +13,6 @@ interface ProjectTreeProps {
   isFocused: boolean;
 }
 
-// ---- Exported hook + component ----
-
 export type { FlatItem };
 
 export function useProjectEntries(sessions: SessionInfo[]): FlatItem[] {
@@ -28,13 +26,18 @@ export function ProjectTree({
   isFocused,
 }: ProjectTreeProps) {
   const entries = useProjectEntries(sessions);
+  // Dynamic width: min 24, adapts to longest entry
+  const sidebarWidth = Math.min(
+    40,
+    Math.max(24, ...entries.map((e) => e.name.length + e.depth * 2 + String(e.count).length + 6)),
+  );
 
   return (
     <Box
       flexDirection="column"
       borderStyle="single"
       borderColor={isFocused ? colors.accent : colors.border}
-      width={26}
+      width={sidebarWidth}
     >
       {/* Header */}
       <Box paddingX={1}>
@@ -49,8 +52,10 @@ export function ProjectTree({
           !item.isGroup &&
           (item.key === selectedProject || (item.key === null && selectedProject === null));
         const isHighlighted = isFocused && idx === highlightedIndex;
-        const indent = item.depth > 0 ? "  ".repeat(item.depth) : "";
+        const indent = "  ".repeat(item.depth);
         const branch = item.depth > 0 ? "└ " : "";
+        const icon = isSelected && !item.isGroup ? "▸" : " ";
+        const label = item.isGroup ? `⑃ ${item.name}` : item.name;
 
         return (
           <Box key={item.key ?? "__all__"} paddingX={1}>
@@ -59,13 +64,14 @@ export function ProjectTree({
               bold={isSelected}
               color={isSelected ? colors.accent : item.isGroup ? colors.textDim : undefined}
               dimColor={item.isGroup}
+              wrap="truncate"
             >
-              {isSelected && !item.isGroup ? "▸" : " "}
+              {icon}
               {indent}
               {branch}
-              {item.isGroup ? `⑃ ${item.name}` : item.name}
+              {label} <Text dimColor>{item.count}</Text>
+              {item.ongoing ? " " : ""}
             </Text>
-            <Text dimColor> {item.count}</Text>
             {item.ongoing ? <OngoingDots count={1} /> : null}
           </Box>
         );

@@ -48,19 +48,28 @@ export function DebugViewer({ entries, selectedIndex }: DebugViewerProps) {
       {visible.map((entry, i) => {
         const idx = start + i;
         const isSelected = idx === selectedIndex;
-        const ts = entry.timestamp ? entry.timestamp.split("T")[1]?.split(".")[0] || "" : "";
+        // Go TUI format: HH:MM:SS.mmm with milliseconds
+        const ts = entry.timestamp
+          ? entry.timestamp.split("T")[1]?.replace("Z", "").slice(0, 12) || ""
+          : "";
 
         return (
           <Box key={entry.line_num}>
+            {/* Cursor — matches Go TUI's chevron/bar pattern */}
             <Text inverse={isSelected} bold={isSelected}>
-              {isSelected ? "▸" : " "}
+              {isSelected ? "\u02C3" : " "}
             </Text>
-            <Text dimColor> {ts} </Text>
+            {/* Timestamp with milliseconds (dim) */}
+            <Text dimColor> {ts.padEnd(12)} </Text>
+            {/* Level badge — WARN/ERROR/DEBUG (bold, colored) */}
             <Text color={levelColor(entry.level)} bold>
               {entry.level.toUpperCase().padEnd(5)}{" "}
             </Text>
-            {entry.category ? <Text color={colors.itemAgent}>[{entry.category}] </Text> : null}
-            <Text dimColor={!isSelected}>{truncate(entry.message, cols - 30)}</Text>
+            {/* Category in brackets (dim agent color) */}
+            {entry.category ? <Text color={colors.itemAgent} dimColor>[{entry.category}] </Text> : null}
+            {/* Message */}
+            <Text dimColor={!isSelected}>{truncate(entry.message, cols - 35)}</Text>
+            {/* Repeat count (right-aligned, orange) */}
             {entry.count > 1 ? <Text color={colors.tokenHigh}> x{entry.count}</Text> : null}
           </Box>
         );

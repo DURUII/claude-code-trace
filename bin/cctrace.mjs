@@ -41,12 +41,7 @@ switch (mode) {
       // Background service mode — just start, no prompt.
       run("npx", ["tauri", "dev", "--", "--", "--web", "--no-open"]);
     } else {
-      const { isInstalled } = await import("./install-service.mjs");
-
-      if (isInstalled()) {
-        // Service already installed — start inline, skip the prompt.
-        run("npx", ["tauri", "dev", "--", "--", "--web"]);
-      } else if (process.stdin.isTTY) {
+      if (process.stdin.isTTY) {
         // Interactive — ask how to start.
         console.log("How would you like to start the web server?\n");
         console.log("  1) Start now (foreground, stops when you close the terminal)");

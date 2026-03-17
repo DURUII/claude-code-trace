@@ -87,8 +87,10 @@ function installDarwin(bin) {
 </plist>
 `,
   );
+  // Remove any existing job first (launchctl remove fully purges from memory,
+  // unlike unload which can leave zombie jobs).
   try {
-    execSync(`launchctl unload "${plist}" 2>/dev/null`, { stdio: "ignore" });
+    execSync(`launchctl remove "${LABEL}" 2>/dev/null`, { stdio: "ignore" });
   } catch {}
   execSync(`launchctl load "${plist}"`);
   console.error("Installed! cctrace --web will start on login.");

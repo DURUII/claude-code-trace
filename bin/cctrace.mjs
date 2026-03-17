@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 import { execSync, spawn } from "node:child_process";
 import { createInterface } from "node:readline";
+import { createConnection } from "node:net";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { platform } from "node:os";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, "..");
@@ -31,6 +33,28 @@ function ask(question) {
   });
 }
 
+/** Check if a port is already in use. */
+function isPortInUse(port) {
+  return new Promise((res) => {
+    const sock = createConnection({ port, host: "127.0.0.1" });
+    sock.once("connect", () => {
+      sock.destroy();
+      res(true);
+    });
+    sock.once("error", () => res(false));
+  });
+}
+
+/** Open a URL in the default browser. */
+function openBrowser(url) {
+  try {
+    const os = platform();
+    if (os === "darwin") execSync(`open "${url}"`);
+    else if (os === "win32") execSync(`cmd.exe /c start "" "${url}"`);
+    else execSync(`xdg-open "${url}" 2>/dev/null`);
+  } catch {}
+}
+
 switch (mode) {
   case "--app":
     run("npx", ["tauri", "dev"]);
@@ -41,6 +65,14 @@ switch (mode) {
       // Background service mode — just start, no prompt.
       run("npx", ["tauri", "dev", "--", "--", "--web", "--no-open"]);
     } else {
+      // Check if the server is already running (e.g. from background service).
+      const alreadyRunning = await isPortInUse(1420);
+      if (alreadyRunning) {
+        console.log("cctrace web server is already running on http://localhost:1420");
+        openBrowser("http://localhost:1420");
+        process.exit(0);
+      }
+
       if (process.stdin.isTTY) {
         // Interactive — ask how to start.
         console.log("How would you like to start the web server?\n");
@@ -51,17 +83,9 @@ switch (mode) {
 
         if (answer === "2") {
           const { installService } = await import("./install-service.mjs");
-          const { platform } = await import("node:os");
           installService();
-          // Open browser once since the service uses --no-open.
-          setTimeout(() => {
-            const os = platform();
-            try {
-              if (os === "darwin") execSync('open "http://localhost:1420"');
-              else if (os === "win32") execSync('cmd.exe /c start "http://localhost:1420"');
-              else execSync('xdg-open "http://localhost:1420" 2>/dev/null');
-            } catch {}
-          }, 2000);
+          // Wait for the service to start, then open browser.
+          setTimeout(() => openBrowser("http://localhost:1420"), 3000);
         } else {
           run("npx", ["tauri", "dev", "--", "--", "--web"]);
         }

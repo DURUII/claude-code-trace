@@ -71,6 +71,8 @@ function installDarwin(bin) {
   </dict>
   <key>RunAtLoad</key>
   <true/>
+  <key>KeepAlive</key>
+  <true/>
   <key>StandardOutPath</key>
   <string>${logPath}</string>
   <key>StandardErrorPath</key>
@@ -103,6 +105,8 @@ After=network.target
 [Service]
 Environment=PATH=${currentPath}
 ExecStart=${bin} --web --no-open
+Restart=on-failure
+RestartSec=5
 
 [Install]
 WantedBy=default.target

@@ -5,7 +5,7 @@
  *
  * Captures the current shell PATH so the service can find node, npx, cargo, etc.
  */
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, unlinkSync, writeFileSync } from "node:fs";
 import { homedir, platform } from "node:os";
 import { join } from "node:path";
 import { execSync } from "node:child_process";
@@ -87,11 +87,23 @@ function installDarwin(bin) {
 </plist>
 `,
   );
-  // Remove any existing job first (launchctl remove fully purges from memory,
-  // unlike unload which can leave zombie jobs).
+  // Kill any existing cctrace background processes and remove all known
+  // launchd labels (including old ones from previous versions).
+  for (const label of [LABEL, "com.cctrace.web", "com.claude-code-trace.web-server"]) {
+    try {
+      execSync(`launchctl remove "${label}" 2>/dev/null`, { stdio: "ignore" });
+    } catch {}
+  }
   try {
-    execSync(`launchctl remove "${LABEL}" 2>/dev/null`, { stdio: "ignore" });
+    execSync('pkill -9 -f "cctrace.*--web.*--no-open" 2>/dev/null', { stdio: "ignore" });
   } catch {}
+  // Clean up old plist files.
+  for (const old of ["com.cctrace.web.plist"]) {
+    try {
+      const oldPath = join(dir, old);
+      if (existsSync(oldPath)) unlinkSync(oldPath);
+    } catch {}
+  }
   execSync(`launchctl load "${plist}"`);
   console.error("Installed! cctrace --web will start on login.");
   console.error(`  Logs:   ${logPath}`);

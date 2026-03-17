@@ -661,9 +661,8 @@ pub fn link_subagents(
 }
 
 /// Inject synthetic Subagent DisplayItems for processes that remain unlinked
-/// (no parent_task_id) after all linking phases. Always creates a dedicated
-/// synthetic AI chunk so orphans don't piggyback on unrelated messages (e.g. a
-/// session-start hook response that predates the subagent).
+/// (no parent_task_id) after all linking phases. Appends them to the last AI
+/// chunk, or creates a new AI chunk if none exists.
 pub fn inject_orphan_subagents(chunks: &mut Vec<Chunk>, processes: &mut [SubagentProcess]) {
     let mut orphan_indices: Vec<usize> = processes
         .iter()
@@ -679,8 +678,22 @@ pub fn inject_orphan_subagents(chunks: &mut Vec<Chunk>, processes: &mut [Subagen
     // Sort orphans oldest-first (ascending start_time).
     orphan_indices.sort_by(|&a, &b| processes[a].start_time.cmp(&processes[b].start_time));
 
-    // Build orphan items.
-    let mut items = Vec::with_capacity(orphan_indices.len());
+    // Find or create last AI chunk.
+    let ai_idx = chunks.iter().rposition(|c| c.chunk_type == ChunkType::AI);
+
+    let idx = match ai_idx {
+        Some(i) => i,
+        None => {
+            // No AI chunk — create a synthetic one.
+            chunks.push(Chunk {
+                chunk_type: ChunkType::AI,
+                timestamp: processes[orphan_indices[0]].start_time,
+                ..Default::default()
+            });
+            chunks.len() - 1
+        }
+    };
+
     for &oi in &orphan_indices {
         let synthetic_tool_id = format!("orphan-{}", processes[oi].id);
         // Set parent_task_id so convert_display_items can link via proc_by_task_id.
@@ -694,7 +707,7 @@ pub fn inject_orphan_subagents(chunks: &mut Vec<Chunk>, processes: &mut [Subagen
             processes[oi].description.clone()
         };
 
-        items.push(DisplayItem {
+        chunks[idx].items.push(DisplayItem {
             item_type: DisplayItemType::Subagent,
             tool_name: "Agent".to_string(),
             tool_id: synthetic_tool_id,
@@ -705,25 +718,6 @@ pub fn inject_orphan_subagents(chunks: &mut Vec<Chunk>, processes: &mut [Subagen
             ..Default::default()
         });
     }
-
-    // Always create a dedicated synthetic AI chunk for orphans, timestamped
-    // to the earliest orphan's start_time so it sorts naturally.
-    let label = if items.len() == 1 {
-        "This is an unlinked subagent because its parent tool call is no longer in the session log."
-            .to_string()
-    } else {
-        format!(
-            "These are {} unlinked subagents because their parent tool calls are no longer in the session log.",
-            items.len()
-        )
-    };
-    chunks.push(Chunk {
-        chunk_type: ChunkType::AI,
-        timestamp: processes[orphan_indices[0]].start_time,
-        text: label,
-        items,
-        ..Default::default()
-    });
 }
 
 /// Derive a human-readable description for an orphan subagent from its prompt.
@@ -1382,23 +1376,14 @@ mod tests {
 
         inject_orphan_subagents(&mut chunks, &mut procs);
 
-        // Existing AI chunk should be untouched.
+        let items = &chunks[0].items;
+        assert_eq!(items.len(), 2, "should have existing item + orphan");
         assert_eq!(
-            chunks[0].items.len(),
-            1,
-            "existing chunk should be untouched"
+            items[0].tool_name, "Bash",
+            "existing item should remain first"
         );
-        assert_eq!(chunks[0].items[0].tool_name, "Bash");
-
-        // Orphan goes into a dedicated new chunk.
-        assert_eq!(chunks.len(), 2, "should have original + orphan chunk");
-        let orphan_items = &chunks[1].items;
-        assert_eq!(orphan_items.len(), 1);
-        assert!(
-            orphan_items[0].is_orphan,
-            "orphan should be in its own chunk"
-        );
-        assert_eq!(orphan_items[0].subagent_type, "general-purpose");
+        assert!(items[1].is_orphan, "orphan should be appended at the end");
+        assert_eq!(items[1].subagent_type, "general-purpose");
     }
 
     #[test]
@@ -1471,8 +1456,8 @@ mod tests {
 
         inject_orphan_subagents(&mut chunks, &mut procs);
 
-        // Orphan goes into a dedicated chunk (index 1), not the existing one.
-        let orphan = &chunks[1].items[0];
+        // Orphan appended to existing AI chunk.
+        let orphan = &chunks[0].items[0];
         assert!(orphan.is_orphan);
         assert_eq!(
             orphan.subagent_desc, "qa-web-test",

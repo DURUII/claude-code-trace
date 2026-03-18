@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useLayoutEffect, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import type { DisplayMessage, DisplayItem } from "../types";
 import { shortModel, formatTokens, formatDuration, formatExactTime } from "../lib/format";
 import { getModelColor, getTeamColor } from "../lib/theme";
@@ -346,7 +347,7 @@ export function MessageDetail({
           <div className="message-detail__content">
             {msg.content && (
               <div className="message-detail__text">
-                <ReactMarkdown>{msg.content}</ReactMarkdown>
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
               </div>
             )}
             {hasItems && (
@@ -719,7 +720,7 @@ function AgentDetailColumn({
           <div className="message-detail__content">
             {msg.content && (
               <div className="message-detail__text">
-                <ReactMarkdown>{msg.content}</ReactMarkdown>
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
               </div>
             )}
             {hasItems && (

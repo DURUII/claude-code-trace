@@ -89,14 +89,9 @@ export function prettyInlineJson(text: string): string {
 }
 
 // Initialise marked with the terminal renderer once at module load.
-marked.use(
-  markedTerminal({
-    // Keep reflowed text — do not hard-wrap at 80 chars.
-    width: 0,
-    // Paragraph spacing: single blank line.
-    paragraph: (text: string) => text + "\n",
-  }),
-);
+// Cast needed: marked-terminal's return type predates the MarkedExtension interface.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+marked.use(markedTerminal({ width: 0, paragraph: (text: string) => text + "\n" }) as any);
 
 /**
  * Render markdown text for terminal display.

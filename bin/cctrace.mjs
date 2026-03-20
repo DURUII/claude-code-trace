@@ -45,6 +45,15 @@ function isPortInUse(port) {
   });
 }
 
+/** Poll until a port is accepting connections or the timeout is reached. */
+async function waitForPort(port, timeoutMs = 30_000) {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    if (await isPortInUse(port)) return;
+    await new Promise((r) => setTimeout(r, 300));
+  }
+}
+
 /** Open a URL in the default browser. */
 function openBrowser(url) {
   try {
@@ -61,25 +70,41 @@ switch (mode) {
     break;
 
   case "--web": {
-    // Check if the server is already running on port 1420.
-    const alreadyRunning = await isPortInUse(1420);
+    // Check if the frontend (Vite, 1420) is already running.
+    const frontendRunning = await isPortInUse(1420);
+    // Check if the backend API (11423) is already running (e.g. desktop app).
+    const backendRunning = await isPortInUse(11423);
 
     if (noOpen) {
-      if (alreadyRunning) {
-        // Another instance owns the port — exit cleanly so launchd
+      if (frontendRunning) {
+        // Another instance owns port 1420 — exit cleanly so launchd
         // doesn't keep respawning us in a crash loop.
         console.error("Port 1420 already in use, exiting.");
         process.exit(0);
       }
-      run("npx", ["tauri", "dev", "--", "--", "--web", "--no-open"]);
+      if (backendRunning) {
+        // Backend already running — start Vite only (no Tauri).
+        run("npx", ["vite"]);
+      } else {
+        run("npx", ["tauri", "dev", "--", "--", "--web", "--no-open"]);
+      }
     } else {
-      if (alreadyRunning) {
+      if (frontendRunning) {
         console.log("cctrace web server is already running on http://localhost:1420");
         openBrowser("http://localhost:1420");
         process.exit(0);
       }
 
-      if (process.stdin.isTTY) {
+      if (backendRunning) {
+        // Backend already running (e.g. desktop app) — start Vite only.
+        // The browser frontend will use the HTTP API at 11423 directly.
+        console.log("Backend already running, starting Vite frontend only...");
+        spawn("npx", ["vite"], { stdio: "inherit", cwd: root }).on("exit", (code) =>
+          process.exit(code ?? 0),
+        );
+        await waitForPort(1420);
+        openBrowser("http://localhost:1420");
+      } else if (process.stdin.isTTY) {
         // Interactive — ask how to start.
         console.log("How would you like to start the web server?\n");
         console.log("  1) Start now (foreground, stops when you close the terminal)");

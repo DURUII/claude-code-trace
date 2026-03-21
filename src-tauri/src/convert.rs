@@ -5,7 +5,7 @@ use std::collections::{HashMap, HashSet};
 use crate::parser::chunk::*;
 use crate::parser::last_output::{find_last_output, LastOutput, LastOutputType};
 use crate::parser::ongoing::OngoingChecker;
-use crate::parser::subagent::SubagentProcess;
+use crate::parser::subagent::{ProcGraph, SubagentProcess};
 use crate::parser::taxonomy::ToolCategory;
 use crate::parser::team::TeamSnapshot;
 
@@ -204,7 +204,7 @@ fn convert_last_output(lo: &LastOutput) -> FrontendLastOutput {
 /// Convert display items with subagent linking and color assignment.
 fn convert_display_items(
     items: &[DisplayItem],
-    subagents: &[SubagentProcess],
+    graph: &ProcGraph,
     color_by_tool_id: &HashMap<String, String>,
     pool_idx: &mut usize,
     visited: &HashSet<String>,
@@ -212,13 +212,6 @@ fn convert_display_items(
     if items.is_empty() {
         return Vec::new();
     }
-
-    // Build ParentTaskID -> SubagentProcess index.
-    let proc_by_task_id: HashMap<&str, &SubagentProcess> = subagents
-        .iter()
-        .filter(|p| !p.parent_task_id.is_empty())
-        .map(|p| (p.parent_task_id.as_str(), p))
-        .collect();
 
     let mut out: Vec<FrontendDisplayItem> = items
         .iter()
@@ -251,23 +244,20 @@ fn convert_display_items(
 
             // Link subagent process if available (Subagent items and ToolCall items like Skill).
             if it.item_type == DisplayItemType::Subagent || !it.tool_id.is_empty() {
-                if let Some(proc) = proc_by_task_id.get(it.tool_id.as_str()) {
-                    fdi.subagent_ongoing =
-                        OngoingChecker::is_subagent_ongoing_deep(proc, subagents);
+                if let Some(proc) = graph.get(it.tool_id.as_str()) {
+                    fdi.subagent_ongoing = OngoingChecker::is_subagent_ongoing_deep(proc, graph);
                     fdi.agent_id = proc.id.clone();
                     fdi.subagent_prompt = proc.prompt.clone();
                     if !proc.teammate_color.is_empty() {
                         fdi.team_color = proc.teammate_color.clone();
                     }
-                    // Convert subagent's chunks into nested messages,
-                    // passing all processes so nested agents (e.g. Skill forked execution) can link.
                     // Skip agents already on the current path to break circular references.
                     if !visited.contains(&proc.id) {
                         let mut child_visited = visited.clone();
                         child_visited.insert(proc.id.clone());
                         fdi.subagent_messages = chunks_to_messages_inner(
                             &proc.chunks,
-                            subagents,
+                            graph,
                             color_by_tool_id,
                             &child_visited,
                         );
@@ -304,12 +294,13 @@ pub fn chunks_to_messages(
     subagents: &[SubagentProcess],
     color_by_tool_id: &HashMap<String, String>,
 ) -> Vec<DisplayMessage> {
-    chunks_to_messages_inner(chunks, subagents, color_by_tool_id, &HashSet::new())
+    let graph = ProcGraph::new(subagents);
+    chunks_to_messages_inner(chunks, &graph, color_by_tool_id, &HashSet::new())
 }
 
 fn chunks_to_messages_inner(
     chunks: &[Chunk],
-    subagents: &[SubagentProcess],
+    graph: &ProcGraph,
     color_by_tool_id: &HashMap<String, String>,
     visited: &HashSet<String>,
 ) -> Vec<DisplayMessage> {
@@ -378,7 +369,7 @@ fn chunks_to_messages_inner(
                     duration_ms: c.duration_ms,
                     items: convert_display_items(
                         &c.items,
-                        subagents,
+                        graph,
                         color_by_tool_id,
                         &mut pool_idx,
                         visited,
@@ -582,16 +573,12 @@ mod tests {
             ..Default::default()
         };
         let subagents = vec![proc];
+        let graph = ProcGraph::new(&subagents);
         let color_map = std::collections::HashMap::new();
         let mut pool_idx = 0;
 
-        let result = convert_display_items(
-            &items,
-            &subagents,
-            &color_map,
-            &mut pool_idx,
-            &HashSet::new(),
-        );
+        let result =
+            convert_display_items(&items, &graph, &color_map, &mut pool_idx, &HashSet::new());
 
         assert_eq!(result.len(), 1);
         assert_eq!(
@@ -706,16 +693,12 @@ mod tests {
         }];
 
         let subagents = vec![];
+        let graph = ProcGraph::new(&subagents);
         let color_map = std::collections::HashMap::new();
         let mut pool_idx = 0;
 
-        let result = convert_display_items(
-            &items,
-            &subagents,
-            &color_map,
-            &mut pool_idx,
-            &HashSet::new(),
-        );
+        let result =
+            convert_display_items(&items, &graph, &color_map, &mut pool_idx, &HashSet::new());
 
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].subagent_prompt, "");

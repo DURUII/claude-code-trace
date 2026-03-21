@@ -242,42 +242,26 @@ impl<'a> OngoingChecker<'a> {
     /// Cascading check: returns true if `proc` or any of its descendant subagents are ongoing.
     pub fn is_subagent_ongoing_deep(
         proc: &super::subagent::SubagentProcess,
-        all_procs: &[super::subagent::SubagentProcess],
+        graph: &super::subagent::ProcGraph,
     ) -> bool {
-        Self::is_subagent_ongoing_deep_inner(proc, all_procs, &mut HashSet::new())
+        Self::is_subagent_ongoing_deep_inner(proc, graph, &mut HashSet::new())
     }
 
     fn is_subagent_ongoing_deep_inner(
         proc: &super::subagent::SubagentProcess,
-        all_procs: &[super::subagent::SubagentProcess],
+        graph: &super::subagent::ProcGraph,
         visited: &mut HashSet<String>,
     ) -> bool {
         if !visited.insert(proc.id.clone()) {
-            // Already visited this agent on the current path — cycle, stop.
             return false;
         }
         if Self::is_subagent_ongoing(proc) {
             return true;
         }
-        // Collect tool_ids from this proc's chunks to find child processes.
-        let child_tool_ids: HashSet<&str> = proc
-            .chunks
+        graph
+            .children_of(proc)
             .iter()
-            .flat_map(|c| c.items.iter())
-            .filter(|it| {
-                it.item_type == DisplayItemType::Subagent
-                    || ((it.tool_name == "Task" || it.tool_name == "Agent")
-                        && it.item_type == DisplayItemType::ToolCall)
-            })
-            .map(|it| it.tool_id.as_str())
-            .collect();
-        if child_tool_ids.is_empty() {
-            return false;
-        }
-        all_procs
-            .iter()
-            .filter(|p| child_tool_ids.contains(p.parent_task_id.as_str()))
-            .any(|p| Self::is_subagent_ongoing_deep_inner(p, all_procs, visited))
+            .any(|p| Self::is_subagent_ongoing_deep_inner(p, graph, visited))
     }
 
     /// Reports whether the chunks indicate the session is still in progress.
@@ -859,8 +843,9 @@ mod tests {
         };
 
         let all = vec![parent.clone(), child];
+        let graph = super::super::subagent::ProcGraph::new(&all);
         assert!(!OngoingChecker::is_subagent_ongoing(&parent));
-        assert!(OngoingChecker::is_subagent_ongoing_deep(&parent, &all));
+        assert!(OngoingChecker::is_subagent_ongoing_deep(&parent, &graph));
     }
 
     #[test]
@@ -918,7 +903,8 @@ mod tests {
         };
 
         let all = vec![parent.clone(), child, grandchild];
-        assert!(OngoingChecker::is_subagent_ongoing_deep(&parent, &all));
+        let graph = super::super::subagent::ProcGraph::new(&all);
+        assert!(OngoingChecker::is_subagent_ongoing_deep(&parent, &graph));
     }
 
     #[test]
@@ -955,7 +941,8 @@ mod tests {
         };
 
         let all = vec![parent.clone(), child];
-        assert!(!OngoingChecker::is_subagent_ongoing_deep(&parent, &all));
+        let graph = super::super::subagent::ProcGraph::new(&all);
+        assert!(!OngoingChecker::is_subagent_ongoing_deep(&parent, &graph));
     }
 
     // --- OngoingChecker::is_chunks_ongoing edge cases ---

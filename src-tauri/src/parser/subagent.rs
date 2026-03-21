@@ -151,6 +151,52 @@ pub fn estimate_cost_from_snapshots(
     cost
 }
 
+/// A lookup graph over a flat slice of SubagentProcesses.
+///
+/// Centralises the repeated pattern of:
+/// - mapping `parent_task_id → &SubagentProcess` (used by convert)
+/// - finding the child processes spawned by a given proc (used by ongoing)
+///
+/// Both consumers receive a `&ProcGraph` so the map is built exactly once
+/// and cycle-detection logic is not duplicated.
+pub struct ProcGraph<'a> {
+    procs: &'a [SubagentProcess],
+    /// parent_task_id → index into `procs`
+    by_task_id: HashMap<&'a str, usize>,
+}
+
+impl<'a> ProcGraph<'a> {
+    pub fn new(procs: &'a [SubagentProcess]) -> Self {
+        let by_task_id = procs
+            .iter()
+            .enumerate()
+            .filter(|(_, p)| !p.parent_task_id.is_empty())
+            .map(|(i, p)| (p.parent_task_id.as_str(), i))
+            .collect();
+        Self { procs, by_task_id }
+    }
+
+    /// Look up the SubagentProcess whose `parent_task_id` matches `tool_id`.
+    pub fn get(&self, tool_id: &str) -> Option<&'a SubagentProcess> {
+        self.by_task_id.get(tool_id).map(|&i| &self.procs[i])
+    }
+
+    /// Return all SubagentProcesses directly spawned by `proc`
+    /// (Subagent display items or Task/Agent tool calls).
+    pub fn children_of(&self, proc: &SubagentProcess) -> Vec<&'a SubagentProcess> {
+        proc.chunks
+            .iter()
+            .flat_map(|c| c.items.iter())
+            .filter(|it| {
+                it.item_type == DisplayItemType::Subagent
+                    || ((it.tool_name == "Task" || it.tool_name == "Agent")
+                        && it.item_type == DisplayItemType::ToolCall)
+            })
+            .filter_map(|it| self.get(it.tool_id.as_str()))
+            .collect()
+    }
+}
+
 /// SubagentProcess holds a parsed subagent and its computed metadata.
 #[derive(Debug, Clone, Serialize)]
 pub struct SubagentProcess {

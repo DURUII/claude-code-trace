@@ -244,6 +244,18 @@ impl<'a> OngoingChecker<'a> {
         proc: &super::subagent::SubagentProcess,
         all_procs: &[super::subagent::SubagentProcess],
     ) -> bool {
+        Self::is_subagent_ongoing_deep_inner(proc, all_procs, &mut HashSet::new())
+    }
+
+    fn is_subagent_ongoing_deep_inner(
+        proc: &super::subagent::SubagentProcess,
+        all_procs: &[super::subagent::SubagentProcess],
+        visited: &mut HashSet<String>,
+    ) -> bool {
+        if !visited.insert(proc.id.clone()) {
+            // Already visited this agent on the current path — cycle, stop.
+            return false;
+        }
         if Self::is_subagent_ongoing(proc) {
             return true;
         }
@@ -265,7 +277,7 @@ impl<'a> OngoingChecker<'a> {
         all_procs
             .iter()
             .filter(|p| child_tool_ids.contains(p.parent_task_id.as_str()))
-            .any(|p| Self::is_subagent_ongoing_deep(p, all_procs))
+            .any(|p| Self::is_subagent_ongoing_deep_inner(p, all_procs, visited))
     }
 
     /// Reports whether the chunks indicate the session is still in progress.

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Pre-commit hook: check format and lint; block commit if issues found.
+# Pre-commit hook: check format, lint, and tests; block commit if issues found.
 # Claude Code will receive the block reason and must fix before retrying.
 
 set -uo pipefail
@@ -11,6 +11,8 @@ STAGED=$(git diff --cached --name-only)
 if [ -z "$STAGED" ]; then
   exit 0
 fi
+
+FLAG_FILE="/tmp/claude-tests-confirmed"
 
 ERRORS=""
 
@@ -35,4 +37,22 @@ if [ -n "$ERRORS" ]; then
   exit 0
 fi
 
-exit 0
+# --- Test check ---
+TEST_OUTPUT=$(npm run test 2>&1)
+TEST_EXIT=$?
+if [ $TEST_EXIT -ne 0 ]; then
+  REASON="Tests are failing. Fix the tests properly — do NOT skip or disable them.\n⚠️  STAGE THE FIXED FILES: git add <files>\nThen retry the commit.\n\n$TEST_OUTPUT"
+  printf '{"decision": "block", "reason": %s}' "$(printf '%s' "$REASON" | jq -Rs .)"
+  exit 0
+fi
+
+# --- Self-reflection gate ---
+# Flag must be set explicitly by Claude (separate Bash call) to confirm tests were written.
+# The hook never sets the flag itself — only Claude can, after consciously answering "yes".
+if [ -f "$FLAG_FILE" ]; then
+  rm -f "$FLAG_FILE"
+  exit 0
+fi
+
+REFLECTION="All checks pass. Did you write or update tests for the behaviour you just changed?\n\n  If not → write the tests then: ⚠️  git add <files>  ⚠️  and retry.\n  If yes → run this in a SEPARATE Bash step, then retry the commit:\n\n    touch $FLAG_FILE"
+printf '{"decision": "block", "reason": %s}' "$(printf '%s' "$REFLECTION" | jq -Rs .)"

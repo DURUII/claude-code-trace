@@ -26,7 +26,7 @@ if [ $LINT_EXIT -ne 0 ] || echo "$LINT_OUTPUT" | grep -qE "[1-9][0-9]* warnings?
   if [ -n "$ERRORS" ]; then
     ERRORS="$ERRORS\n\nLint issues:\n$LINT_OUTPUT"
   else
-    ERRORS="Lint issues found. Fix all issues, do not ask user for options, fix and stage the changes, then retry the commit.\n\n$LINT_OUTPUT"
+    ERRORS="Lint issues found. Fix each issue properly at the root cause — do NOT add eslint-disable comments or suppress rules. Fix and stage the changes, then retry the commit.\n\n$LINT_OUTPUT"
   fi
 fi
 

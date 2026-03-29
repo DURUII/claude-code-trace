@@ -20,7 +20,7 @@ ERRORS=""
 
 # --- Format check ---
 FMT_OUTPUT=$(npm run fmt:check 2>&1) || {
-  ERRORS="Format issues found. Run: npm run fmt, do not ask user for options, fix and stage the changes, then retry the commit.\n\n$FMT_OUTPUT"
+  ERRORS="Format issues found. Run: npm run fmt, do not ask user for options, ⚠️  STAGE THE FIXED FILES in a SEPARATE Bash tool call: git add <files>\nThen retry the commit in another Bash tool call.\n\n$FMT_OUTPUT"
 }
 
 # --- Lint check ---
@@ -30,7 +30,7 @@ if [ $LINT_EXIT -ne 0 ] || echo "$LINT_OUTPUT" | grep -qE "[1-9][0-9]* warnings?
   if [ -n "$ERRORS" ]; then
     ERRORS="$ERRORS\n\nLint issues:\n$LINT_OUTPUT"
   else
-    ERRORS="Lint issues found. Fix each issue properly at the root cause — do NOT add eslint-disable comments or suppress rules. ⚠️  STAGE THE FIXED FILES in a SEPARATE Bash tool call: git add <files>\nThen retry the commit in another Bash tool call.$LINT_OUTPUT"
+    ERRORS="Lint issues found. Fix each issue properly at the root cause — do NOT add eslint-disable comments or suppress rules. ⚠️  STAGE THE FIXED FILES in a SEPARATE Bash tool call: git add <files>\nThen retry the commit in another Bash tool call.\n\n$LINT_OUTPUT"
   fi
 fi
 
@@ -43,7 +43,7 @@ fi
 TEST_OUTPUT=$(npm run test 2>&1)
 TEST_EXIT=$?
 if [ $TEST_EXIT -ne 0 ]; then
-  REASON="Tests are failing. Fix the tests properly — do NOT skip or disable them.\n⚠️  STAGE THE FIXED FILES in a SEPARATE Bash tool call: git add <files>\nThen retry the commit in another Bash tool call.$TEST_OUTPUT"
+  REASON="Tests are failing. Fix the tests properly — do NOT skip or disable them.\n⚠️  STAGE THE FIXED FILES in a SEPARATE Bash tool call: git add <files>\nThen retry the commit in another Bash tool call.\n\n$TEST_OUTPUT"
   printf '{"decision": "block", "reason": %s}' "$(printf '%s' "$REASON" | jq -Rs .)"
   exit 0
 fi

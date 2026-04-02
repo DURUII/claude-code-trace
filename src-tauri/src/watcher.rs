@@ -16,14 +16,22 @@ const WATCHER_DEBOUNCE: Duration = Duration::from_millis(200);
 
 /// Run a debounced file-change loop: receive notify events, apply `filter`,
 /// and send a signal after `WATCHER_DEBOUNCE` of quiet time.
+/// Exits when `thread_stop_rx` receives a value or is disconnected.
 fn run_debounce_loop(
     rx: std::sync::mpsc::Receiver<Result<notify::Event, notify::Error>>,
     filter: impl Fn(&notify::Event) -> bool,
     signal_tx: mpsc::Sender<()>,
+    thread_stop_rx: std::sync::mpsc::Receiver<()>,
 ) {
     let mut debounce_timer: Option<std::time::Instant> = None;
 
     loop {
+        // Check for an explicit stop signal before blocking on notify events.
+        match thread_stop_rx.try_recv() {
+            Ok(()) | Err(std::sync::mpsc::TryRecvError::Disconnected) => break,
+            Err(std::sync::mpsc::TryRecvError::Empty) => {}
+        }
+
         match rx.recv_timeout(Duration::from_millis(100)) {
             Ok(Ok(event)) => {
                 if filter(&event) {
@@ -46,12 +54,16 @@ fn run_debounce_loop(
 
 /// Handle for stopping a file watcher (session or picker).
 pub struct WatcherHandle {
+    /// Stops the async rebuild task.
     stop_tx: mpsc::Sender<()>,
+    /// Stops the underlying std::thread running notify + debounce, releasing OS watcher fds.
+    thread_stop_tx: std::sync::mpsc::SyncSender<()>,
 }
 
 impl WatcherHandle {
     pub fn stop(&self) {
         let _ = self.stop_tx.try_send(());
+        let _ = self.thread_stop_tx.try_send(());
     }
 }
 
@@ -69,6 +81,7 @@ struct SessionUpdatePayload {
 pub fn start_session_watcher(path: String, app: AppHandle) -> WatcherHandle {
     let (stop_tx, mut stop_rx) = mpsc::channel::<()>(1);
     let (signal_tx, mut signal_rx) = mpsc::channel::<()>(4);
+    let (thread_stop_tx, thread_stop_rx) = std::sync::mpsc::sync_channel::<()>(1);
 
     let path_clone = path.clone();
     let signal_tx_clone = signal_tx.clone();
@@ -125,7 +138,9 @@ pub fn start_session_watcher(path: String, app: AppHandle) -> WatcherHandle {
                 })
             },
             signal_tx,
+            thread_stop_rx,
         );
+        // watcher dropped here → OS watcher fd released
     });
 
     // Spawn the async rebuild loop.
@@ -238,7 +253,10 @@ pub fn start_session_watcher(path: String, app: AppHandle) -> WatcherHandle {
         }
     });
 
-    WatcherHandle { stop_tx }
+    WatcherHandle {
+        stop_tx,
+        thread_stop_tx,
+    }
 }
 
 /// Serializable picker refresh event.
@@ -251,6 +269,7 @@ struct PickerRefreshPayload {
 pub fn start_picker_watcher(project_dirs: Vec<String>, app: AppHandle) -> WatcherHandle {
     let (stop_tx, mut stop_rx) = mpsc::channel::<()>(1);
     let (signal_tx, mut signal_rx) = mpsc::channel::<()>(4);
+    let (thread_stop_tx, thread_stop_rx) = std::sync::mpsc::sync_channel::<()>(1);
 
     // Derive unique parent directories (e.g. ~/.claude/projects) from the
     // individual project dirs. Watching the parent instead of individual
@@ -295,7 +314,9 @@ pub fn start_picker_watcher(project_dirs: Vec<String>, app: AppHandle) -> Watche
                 })
             },
             signal_tx,
+            thread_stop_rx,
         );
+        // watcher dropped here → OS watcher fd released
     });
 
     // Spawn the async refresh loop.
@@ -356,5 +377,63 @@ pub fn start_picker_watcher(project_dirs: Vec<String>, app: AppHandle) -> Watche
         }
     });
 
-    WatcherHandle { stop_tx }
+    WatcherHandle {
+        stop_tx,
+        thread_stop_tx,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tokio::sync::mpsc;
+
+    /// run_debounce_loop must exit when the stop signal is sent.
+    #[test]
+    fn debounce_loop_exits_on_stop_signal() {
+        let (signal_tx, _signal_rx) = mpsc::channel::<()>(4);
+        let (thread_stop_tx, thread_stop_rx) = std::sync::mpsc::sync_channel::<()>(1);
+        let (_notify_tx, notify_rx) = std::sync::mpsc::channel();
+
+        thread_stop_tx.send(()).unwrap();
+
+        let handle = std::thread::spawn(move || {
+            run_debounce_loop(notify_rx, |_| false, signal_tx, thread_stop_rx);
+        });
+
+        handle
+            .join()
+            .expect("debounce thread should exit after stop signal");
+    }
+
+    /// run_debounce_loop must exit when the stop sender is dropped (Disconnected).
+    #[test]
+    fn debounce_loop_exits_when_stop_sender_dropped() {
+        let (signal_tx, _signal_rx) = mpsc::channel::<()>(4);
+        let (thread_stop_tx, thread_stop_rx) = std::sync::mpsc::sync_channel::<()>(1);
+        let (_notify_tx, notify_rx) = std::sync::mpsc::channel();
+
+        drop(thread_stop_tx);
+
+        let handle = std::thread::spawn(move || {
+            run_debounce_loop(notify_rx, |_| false, signal_tx, thread_stop_rx);
+        });
+
+        handle
+            .join()
+            .expect("debounce thread should exit when stop sender is dropped");
+    }
+
+    /// WatcherHandle::stop() must not panic when called multiple times on a closed channel.
+    #[test]
+    fn watcher_handle_stop_is_idempotent() {
+        let (stop_tx, _stop_rx) = mpsc::channel::<()>(1);
+        let (thread_stop_tx, _thread_stop_rx) = std::sync::mpsc::sync_channel::<()>(1);
+        let handle = WatcherHandle {
+            stop_tx,
+            thread_stop_tx,
+        };
+        handle.stop();
+        handle.stop();
+    }
 }

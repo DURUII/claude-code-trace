@@ -165,9 +165,8 @@ pub fn classify(e: Entry) -> Option<ClassifiedMsg> {
                     .to_string();
                 let command = data
                     .get("command")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("")
-                    .to_string();
+                    .map(resolve_hook_output)
+                    .unwrap_or_default();
                 return Some(ClassifiedMsg::Hook(HookMsg {
                     timestamp: ts,
                     hook_event,
@@ -236,14 +235,24 @@ pub fn classify(e: Entry) -> Option<ClassifiedMsg> {
                     .unwrap_or("")
                     .to_string();
                 // For blocking errors, extract the error message as the command context.
-                let command = att
-                    .get("blockingError")
-                    .and_then(|v| v.get("blockingError"))
-                    .and_then(|v| v.as_str())
-                    .or_else(|| att.get("stderr").and_then(|v| v.as_str()))
-                    .unwrap_or("")
-                    .trim()
-                    .to_string();
+                // From v2.1.89 these fields may be a {path, preview} file-reference object
+                // instead of a plain string when output exceeds 50 K characters.
+                let command = {
+                    let blocking = att
+                        .get("blockingError")
+                        .and_then(|v| v.get("blockingError"))
+                        .map(resolve_hook_output)
+                        .unwrap_or_default();
+                    if !blocking.trim().is_empty() {
+                        blocking
+                    } else {
+                        att.get("stderr")
+                            .map(resolve_hook_output)
+                            .unwrap_or_default()
+                    }
+                }
+                .trim()
+                .to_string();
                 return Some(ClassifiedMsg::Hook(HookMsg {
                     timestamp: ts,
                     hook_event: hook_event.to_string(),
@@ -527,6 +536,33 @@ fn extract_tool_search_matches(raw: &Option<Value>) -> Option<Vec<String>> {
     }
 }
 
+/// Normalizes a `tool_use.input` value to handle the pre-v2.1.92 streaming bug where
+/// array/object fields were emitted as JSON-encoded strings instead of native JSON types.
+///
+/// For example, `"env": "[\"KEY=val\"]"` is parsed back to `"env": ["KEY=val"]`.
+/// Values that are already arrays or objects, or strings that don't parse as
+/// arrays/objects, are left unchanged.
+fn normalize_tool_input(input: Value) -> Value {
+    match input {
+        Value::Object(mut map) => {
+            for val in map.values_mut() {
+                if let Value::String(s) = val {
+                    let trimmed = s.trim_start();
+                    if trimmed.starts_with('[') || trimmed.starts_with('{') {
+                        if let Ok(parsed) = serde_json::from_str::<Value>(s) {
+                            if matches!(parsed, Value::Array(_) | Value::Object(_)) {
+                                *val = parsed;
+                            }
+                        }
+                    }
+                }
+            }
+            Value::Object(map)
+        }
+        other => other,
+    }
+}
+
 fn extract_assistant_details(content: &Option<Value>) -> (usize, Vec<ToolCall>, Vec<ContentBlock>) {
     let blocks = match content {
         Some(Value::Array(arr)) => arr,
@@ -584,7 +620,7 @@ fn extract_assistant_details(content: &Option<Value>) -> (usize, Vec<ToolCall>, 
                     block_type: "tool_use".to_string(),
                     tool_id: id,
                     tool_name: name,
-                    tool_input: b.get("input").cloned(),
+                    tool_input: b.get("input").cloned().map(normalize_tool_input),
                     ..Default::default()
                 });
             }
@@ -1152,6 +1188,111 @@ mod tests {
         assert!(classify(e).is_none(), "Non-hook attachment must be dropped");
     }
 
+    // --- Hook output compat tests (v2.1.89+) ---
+
+    #[test]
+    fn classify_progress_hook_with_structured_command_returns_preview() {
+        // v2.1.89: hook stdout >50K is stored as {path, preview} object instead of a plain string.
+        // When the file is absent (tmp file already cleaned up), the preview must be returned.
+        let e = Entry {
+            entry_type: "progress".to_string(),
+            uuid: "uuid-hook-large".to_string(),
+            timestamp: "2025-01-15T10:30:00Z".to_string(),
+            data: Some(json!({
+                "type": "hook_progress",
+                "hookEvent": "PostToolUse",
+                "hookName": "my-large-hook",
+                "command": {"path": "/tmp/nonexistent_hook_12345.txt", "preview": "large output preview"}
+            })),
+            ..Default::default()
+        };
+        match classify(e) {
+            Some(ClassifiedMsg::Hook(h)) => {
+                assert_eq!(h.hook_event, "PostToolUse");
+                assert_eq!(h.hook_name, "my-large-hook");
+                assert_eq!(h.command, "large output preview");
+            }
+            other => panic!("Expected Hook with preview, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn classify_progress_hook_with_structured_command_reads_file_when_present() {
+        // When the file is still on disk, the full content must be returned.
+        let dir = std::env::temp_dir();
+        let path = dir.join("test_classify_hook_large.txt");
+        std::fs::write(&path, "full large hook output").unwrap();
+        let e = Entry {
+            entry_type: "progress".to_string(),
+            uuid: "uuid-hook-file".to_string(),
+            timestamp: "2025-01-15T10:30:00Z".to_string(),
+            data: Some(json!({
+                "type": "hook_progress",
+                "hookEvent": "PreToolUse",
+                "hookName": "pre-hook",
+                "command": {"path": path.to_str().unwrap(), "preview": "truncated..."}
+            })),
+            ..Default::default()
+        };
+        match classify(e) {
+            Some(ClassifiedMsg::Hook(h)) => {
+                assert_eq!(h.command, "full large hook output");
+            }
+            other => panic!("Expected Hook, got {:?}", other),
+        }
+        std::fs::remove_file(&path).ok();
+    }
+
+    #[test]
+    fn classify_attachment_blocking_error_with_structured_blocking_error_field() {
+        // v2.1.89: blockingError.blockingError may be a {path, preview} object.
+        let e = Entry {
+            entry_type: "attachment".to_string(),
+            uuid: "uuid-att-large-block".to_string(),
+            timestamp: "2025-01-15T10:30:00Z".to_string(),
+            attachment: Some(json!({
+                "type": "hook_blocking_error",
+                "hookEvent": "PostToolUse",
+                "hookName": "post-lint",
+                "blockingError": {
+                    "blockingError": {"path": "/tmp/nonexistent_block.txt", "preview": "lint error preview"}
+                }
+            })),
+            ..Default::default()
+        };
+        match classify(e) {
+            Some(ClassifiedMsg::Hook(h)) => {
+                assert_eq!(h.hook_event, "PostToolUse");
+                assert_eq!(h.command, "lint error preview");
+            }
+            other => panic!("Expected Hook, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn classify_attachment_blocking_error_with_structured_stderr_field() {
+        // v2.1.89: stderr may also be a {path, preview} object when output is large.
+        let e = Entry {
+            entry_type: "attachment".to_string(),
+            uuid: "uuid-att-large-stderr".to_string(),
+            timestamp: "2025-01-15T10:30:00Z".to_string(),
+            attachment: Some(json!({
+                "type": "hook_non_blocking_error",
+                "hookEvent": "PreToolUse",
+                "hookName": "pre-check",
+                "stderr": {"path": "/tmp/nonexistent_stderr.txt", "preview": "stderr preview text"}
+            })),
+            ..Default::default()
+        };
+        match classify(e) {
+            Some(ClassifiedMsg::Hook(h)) => {
+                assert_eq!(h.hook_event, "PreToolUse");
+                assert_eq!(h.command, "stderr preview text");
+            }
+            other => panic!("Expected Hook, got {:?}", other),
+        }
+    }
+
     // --- Unknown / structural entry type tests (compat: v2.1.79-v2.1.83) ---
 
     #[test]
@@ -1207,6 +1348,98 @@ mod tests {
                 "Expected meta AI for unknown entry with role, got {:?}",
                 other
             ),
+        }
+    }
+
+    // --- normalize_tool_input tests (compat: pre-v2.1.92 streaming bug) ---
+
+    #[test]
+    fn normalize_tool_input_leaves_native_array_unchanged() {
+        let input = json!({"command": "ls", "env": ["KEY=val"]});
+        let result = normalize_tool_input(input.clone());
+        assert_eq!(result, input);
+    }
+
+    #[test]
+    fn normalize_tool_input_leaves_native_object_unchanged() {
+        let input = json!({"options": {"flag": true}});
+        let result = normalize_tool_input(input.clone());
+        assert_eq!(result, input);
+    }
+
+    #[test]
+    fn normalize_tool_input_parses_json_encoded_array_string() {
+        // Pre-v2.1.92: array field emitted as JSON-encoded string
+        let input = json!({"command": "ls", "env": "[\"KEY=val\"]"});
+        let result = normalize_tool_input(input);
+        assert_eq!(result["env"], json!(["KEY=val"]));
+        assert_eq!(result["command"], json!("ls"));
+    }
+
+    #[test]
+    fn normalize_tool_input_parses_json_encoded_object_string() {
+        // Pre-v2.1.92: object field emitted as JSON-encoded string
+        let input = json!({"options": "{\"flag\": true, \"count\": 3}"});
+        let result = normalize_tool_input(input);
+        assert_eq!(result["options"], json!({"flag": true, "count": 3}));
+    }
+
+    #[test]
+    fn normalize_tool_input_leaves_plain_string_unchanged() {
+        let input = json!({"command": "ls -la", "description": "List files"});
+        let result = normalize_tool_input(input.clone());
+        assert_eq!(result, input);
+    }
+
+    #[test]
+    fn normalize_tool_input_leaves_string_that_looks_like_array_but_invalid_json_unchanged() {
+        let input = json!({"bad": "[not valid json"});
+        let result = normalize_tool_input(input.clone());
+        assert_eq!(result, input);
+    }
+
+    #[test]
+    fn normalize_tool_input_leaves_non_object_input_unchanged() {
+        // input that is an array or scalar at the top level is returned as-is
+        let input = json!(["a", "b"]);
+        let result = normalize_tool_input(input.clone());
+        assert_eq!(result, input);
+    }
+
+    #[test]
+    fn classify_tool_use_block_with_pre_v2_1_92_encoded_array_is_normalized() {
+        // Integration test: full classify path normalizes legacy encoded array
+        let content = json!([{
+            "type": "tool_use",
+            "id": "tool1",
+            "name": "Bash",
+            "input": {
+                "command": "ls",
+                "env": "[\"KEY=val\"]"
+            }
+        }]);
+        let mut e = make_entry("assistant", Some(content));
+        e.message.model = "claude-sonnet-4-20250514".to_string();
+        e.message.stop_reason = Some("tool_use".to_string());
+        match classify(e) {
+            Some(ClassifiedMsg::AI(ai)) => {
+                let block = ai
+                    .blocks
+                    .iter()
+                    .find(|b| b.block_type == "tool_use")
+                    .expect("should have tool_use block");
+                let env = block
+                    .tool_input
+                    .as_ref()
+                    .and_then(|v| v.get("env"))
+                    .expect("env field should exist");
+                assert_eq!(
+                    *env,
+                    json!(["KEY=val"]),
+                    "env should be a native array, not a string"
+                );
+            }
+            other => panic!("Expected AI, got {:?}", other),
         }
     }
 }

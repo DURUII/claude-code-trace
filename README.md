@@ -13,6 +13,9 @@
 
 A desktop + web viewer for Claude Code session JSONL files. Built with [Tauri v2](https://v2.tauri.app/) (Rust backend + React frontend).
 
+> Note: I haven’t spent much time polishing the TUI yet, so there are still a few UX rough edges. TUI also calls Rust APIs to retrieve normalized Claude Code session data
+> Contributions are very welcome
+
 Reads session logs from `~/.claude/` and renders them as a scrollable conversation with expandable tool calls, token counts, and live tailing. Works as a **native desktop app** (macOS, Linux, Windows) or as a **web app** in any browser.
 
 <p align="center">

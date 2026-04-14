@@ -222,10 +222,10 @@ export function App() {
         const listDown = () => setSelectedMessage((i) => Math.max(i - 1, 0));
         const listUp = () =>
           setSelectedMessage((i) => Math.min(i + 1, session.messages.length - 1));
-        keyMap["j"] = listDown;
-        keyMap["ArrowDown"] = listDown;
-        keyMap["k"] = listUp;
-        keyMap["ArrowUp"] = listUp;
+        keyMap["j"] = listUp;
+        keyMap["ArrowDown"] = listUp;
+        keyMap["k"] = listDown;
+        keyMap["ArrowUp"] = listDown;
         keyMap["G"] = jumpToTop;
         keyMap["g"] = jumpToBottom;
         keyMap["Tab"] = () => toggleMessage(selectedMessage);
